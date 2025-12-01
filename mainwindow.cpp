@@ -370,7 +370,7 @@ void MainWindow::togglePalette(bool darkMode) {
         palette.setColor(QPalette::Button, QColor(53,53,53));
         palette.setColor(QPalette::ButtonText, Qt::white);
         palette.setColor(QPalette::BrightText, Qt::red);
-        palette.setColor(QPalette::Highlight, QColor(150,150,150).lighter());
+        palette.setColor(QPalette::Highlight, QColor(140,140,140).lighter());
         palette.setColor(QPalette::HighlightedText, Qt::black);
         themeToggle->setStyleSheet(R"(
             QCheckBox { color: white; }
