@@ -130,11 +130,11 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::setupActions() {
-    auto* tb = addToolBar("Ribbon");
+    tb = addToolBar("Ribbon");
     tb->setMovable(false);
 
     QSize iconSize(32,32);
-    QColor brandColor = QColor("#2196F3"); // default light mode
+    QColor brandColor = QColor(Qt::black);
 
     QVector<QPair<QString, QString>> fileActions = {
         {"Open",   ":/icons/icons/open_in_new.svg"},
@@ -168,18 +168,37 @@ void MainWindow::setupActions() {
             auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
             bool darkMode = provider && provider->darkMode();
 
-            FolderDialog dlg(this);
-            dlg.setDarkMode(darkMode);   // apply provider’s flag
+            // Get highlighted index from tree or list
+            QModelIndex idx = tree_->currentIndex();
+            if (!idx.isValid()) idx = list_->currentIndex();
+
+            QString currentPath;
+            if (idx.isValid()) {
+                QFileInfo info(fsModel_->filePath(idx));
+                if (info.isDir()) {
+                    currentPath = info.absoluteFilePath();   // folder directly
+                } else {
+                    currentPath = info.absolutePath();       // parent folder if file
+                }
+            } else {
+                // fallback to root if nothing highlighted
+                currentPath = fsModel_->filePath(tree_->rootIndex());
+            }
+
+            // 🔹 Open dialog starting at that folder
+            FolderDialog dlg(currentPath, this);
+            dlg.setDarkMode(provider);
+
             if (dlg.exec() == QDialog::Accepted) {
                 QString dir = dlg.selectedPath();
                 if (!dir.isEmpty()) {
+                    // navigate explorer into chosen folder
                     fsModel_->setRootPath(dir);
                     setRootPath(dir);
                 }
             }
         }
     });
-
 
 }
 
@@ -312,11 +331,33 @@ void MainWindow::setupConnections() {
             fsModel_->dataChanged(index.parent(), index.parent(), roles);
         }
     });
+    connect(tree_, &QTreeView::doubleClicked,
+            this, &MainWindow::onItemDoubleClicked);
+
+    connect(list_, &QListView::doubleClicked,
+            this, &MainWindow::onItemDoubleClicked);
+}
+void MainWindow::onItemDoubleClicked(const QModelIndex& index) {
+    if (!index.isValid()) return;
+
+    QFileInfo info = fsModel_->fileInfo(index);
+    if (info.isDir()) {
+        // Navigate into folder
+        QString dir = info.absoluteFilePath();
+        fsModel_->setRootPath(dir);
+        setRootPath(dir);
+    } else {
+        // For files, you can either open them or just show details
+        statusBar()->showMessage("File selected: " + info.fileName());
+        // Or trigger preview logic here
+    }
 }
 
 void MainWindow::togglePalette(bool darkMode) {
     QPalette palette;
     QColor brandColor;
+    QColor accentColor = darkMode ? QColor("#FF5722") : QColor("#2196F3");
+
     if (darkMode) {
         // Dark theme
         palette.setColor(QPalette::Window, QColor(53,53,53));
@@ -329,7 +370,7 @@ void MainWindow::togglePalette(bool darkMode) {
         palette.setColor(QPalette::Button, QColor(53,53,53));
         palette.setColor(QPalette::ButtonText, Qt::white);
         palette.setColor(QPalette::BrightText, Qt::red);
-        palette.setColor(QPalette::Highlight, QColor(142,45,197).lighter());
+        palette.setColor(QPalette::Highlight, QColor(150,150,150).lighter());
         palette.setColor(QPalette::HighlightedText, Qt::black);
         themeToggle->setStyleSheet(R"(
             QCheckBox { color: white; }
@@ -341,7 +382,12 @@ void MainWindow::togglePalette(bool darkMode) {
                 background-color: white;
             }
         )");
-        brandColor = QColor("#FF5722");
+        brandColor = QColor("red");
+        tb->setStyleSheet(
+            "QToolBar { background:#2b2b2b; }"
+            "QToolButton { color:white; }"
+            );
+
     } else {
         // Custom light theme
         palette.setColor(QPalette::Window, QColor(245,245,245));        // soft background
@@ -368,7 +414,8 @@ void MainWindow::togglePalette(bool darkMode) {
     }
     qApp->setPalette(palette);
 
-    brandColor = darkMode ? QColor("#FF5722") : QColor("#2196F3");
+    // brandColor = darkMode ? QColor("#FF5722") : QColor("#2196F3");
+    brandColor = darkMode ? Qt::white : Qt::black;
     QSize iconSize(32,32);
 
     if (fileGroup) fileGroup->updateIcons(brandColor, iconSize);
@@ -381,7 +428,28 @@ void MainWindow::togglePalette(bool darkMode) {
                               fsModel_->index(fsModel_->rowCount()-1,0));
     }
 
+    auto* providerTb = static_cast<IconProvider*>(fsModel_->iconProvider());
+    applyToolbarTheme(providerTb->darkMode());
 }
+
+void MainWindow::applyToolbarTheme(bool darkMode) {
+    if (darkMode) {
+        tb->setStyleSheet(
+            "QToolBar { background:#2b2b2b; }"
+            "QToolButton { color:white; }"
+            );
+        fileGroup->updateIcons(Qt::white, QSize(32,32));
+        navGroup->updateIcons(Qt::white, QSize(32,32));
+    } else {
+        tb->setStyleSheet(
+            "QToolBar { background:#fdfdfd; }"
+            "QToolButton { color:black; }"
+            );
+        fileGroup->updateIcons(Qt::black, QSize(32,32));
+        navGroup->updateIcons(Qt::black, QSize(32,32));
+    }
+}
+
 MainWindow::~MainWindow()
 {
     delete ui;

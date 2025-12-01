@@ -8,5 +8,8 @@
         <file>icons/rename.svg</file>
         <file>icons/delete.svg</file>
         <file>icons/folder-search.svg</file>
+        <file>icons/arrow-up-bold.svg</file>
+        <file>icons/new-folder.svg</file>
+        <file>icons/refresh.svg</file>
     </qresource>
 </RCC>

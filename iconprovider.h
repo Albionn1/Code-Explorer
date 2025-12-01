@@ -16,6 +16,8 @@ public:
 
     QIcon icon(const QFileInfo &info) const override;
 
+    static QIcon tintSvg(const QString& resPath, const QColor& color, const QSize& size);
+
 private:
     QSet<QString> expandedPaths_;
     bool darkModeEnabled_ = false;    // NEW

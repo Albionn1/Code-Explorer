@@ -25,6 +25,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void applyToolbarTheme(bool darkMode);
 private:
     Ui::MainWindow *ui;
 
@@ -42,6 +43,8 @@ private:
     QAction* browseAct_ = nullptr;
     RibbonGroup* fileGroup = nullptr;
     RibbonGroup* navGroup  = nullptr;
+    QToolBar* tb;
+
     void setupActions();
     void setupConnections();
     void openSelected();
@@ -50,5 +53,6 @@ private:
     void renameSelected();
     void setRootPath(const QString& path);
     void togglePalette(bool darkMode);
+    void onItemDoubleClicked(const QModelIndex& index);
 };
 #endif // MAINWINDOW_H

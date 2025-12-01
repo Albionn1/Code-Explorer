@@ -1,4 +1,5 @@
 #include "iconprovider.h"
+#include "iconfactory.h"
 #include <QSvgRenderer>
 #include <QPixmap>
 #include <QPainter>
@@ -50,12 +51,12 @@ static QIcon tintSvg(const QString& resPath, const QColor& color, const QSize& s
 QIcon IconProvider::icon(const QFileInfo &info) const {
     if (info.isDir()) {
         QString res = isExpanded(info.absoluteFilePath())
-        ? ":/icons/icons/opened_folder.svg"
+        ? ":/icons/icons/folder-open.svg"
         : ":/icons/icons/folder.svg";
 
         QColor brandColor = darkModeEnabled_ ? QColor("#FF5722")   // orange for dark mode
                                              : QColor("#2196F3");  // blue for light mode
-        return tintSvg(res, brandColor, QSize(16,16));
+        return tintSvgIcon(res, brandColor, QSize(16,16));
     }
     return QFileIconProvider::icon(info);
 }
