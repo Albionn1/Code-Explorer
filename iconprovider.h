@@ -2,6 +2,7 @@
 #include <QFileIconProvider>
 #include <QSet>
 #include <QString>
+#include <QColor>
 
 class IconProvider : public QFileIconProvider {
 public:
@@ -9,12 +10,13 @@ public:
 
     void setExpanded(const QString& path, bool expanded);
     bool isExpanded(const QString& path) const;
-    void setBrandColor(const QColor& color);
-    QColor brandColor() const;
 
-    QIcon icon(const QFileInfo &info) const override;  // override for performance
+    void setDarkMode(bool enabled);   // NEW
+    bool darkMode() const;            // NEW
+
+    QIcon icon(const QFileInfo &info) const override;
 
 private:
     QSet<QString> expandedPaths_;
-    QColor brandColor_ = QColor("#2196F3");
+    bool darkModeEnabled_ = false;    // NEW
 };

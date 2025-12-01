@@ -5,5 +5,8 @@
         <file>icons/checkBox_checked.png</file>
         <file>icons/file_find.svg</file>
         <file>icons/open_in_new.svg</file>
+        <file>icons/rename.svg</file>
+        <file>icons/delete.svg</file>
+        <file>icons/folder-search.svg</file>
     </qresource>
 </RCC>

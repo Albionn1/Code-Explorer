@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "ribbongroup.h"
 #include <QMainWindow>
 #include <QFileSystemModel>
 #include <QTreeView>
@@ -35,8 +36,12 @@ private:
     QItemSelectionModel* selModel_ = nullptr;
     QVector<int> roles = {Qt::DecorationRole};
     QLabel* headerLabel_ = nullptr;
-    bool darkModeEnabled = false;
-
+    QAction* openAct_   = nullptr;
+    QAction* renameAct_ = nullptr;
+    QAction* deleteAct_ = nullptr;
+    QAction* browseAct_ = nullptr;
+    RibbonGroup* fileGroup = nullptr;
+    RibbonGroup* navGroup  = nullptr;
     void setupActions();
     void setupConnections();
     void openSelected();
@@ -44,6 +49,6 @@ private:
     void deleteSelected();
     void renameSelected();
     void setRootPath(const QString& path);
-    void togglePalette(bool checked);
+    void togglePalette(bool darkMode);
 };
 #endif // MAINWINDOW_H

@@ -28,6 +28,8 @@ qt_add_executable(FileExplorer
     resources.qrc
     folderdelegate.h folderdelegate.cpp
     iconfactory.h iconfactory.cpp
+    ribbongroup.h ribbongroup.cpp
+    folderdialog.h folderdialog.cpp
 )
 
 # Link against Qt6 Widgets and Svg

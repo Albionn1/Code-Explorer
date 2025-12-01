@@ -33,5 +33,6 @@ int main(int argc, char *argv[])
     w.show();
     w.resize(1200, 800); // bigger, widescreen feel
     w.setMinimumSize(1000, 700);
+
     return a.exec();
 }

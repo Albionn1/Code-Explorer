@@ -1,8 +1,9 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "folderdialog.h"
 #include "iconfactory.h"
 #include "iconprovider.h"
-#include "folderdelegate.h"
+#include "ribbongroup.h"
 
 #include <QFileSystemModel>
 #include <QTreeView>
@@ -129,37 +130,59 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::setupActions() {
-    auto* tb = addToolBar("Actions");
-    tb->setIconSize(QSize(24,24));
-    tb->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    auto* tb = addToolBar("Ribbon");
+    tb->setMovable(false);
 
-    auto* openAct   = tb->addAction("Open");
-    auto* revealAct = tb->addAction("Reveal");
-    auto* renameAct = tb->addAction("Rename");
-    auto* deleteAct = tb->addAction("Delete");
-    auto* browseAct = tb->addAction("Browse…");
+    QSize iconSize(32,32);
+    QColor brandColor = QColor("#2196F3"); // default light mode
 
-    // Connect once in your constructor
-    connect(themeToggle, &QCheckBox::toggled,
-            this, &MainWindow::togglePalette);
+    QVector<QPair<QString, QString>> fileActions = {
+        {"Open",   ":/icons/icons/open_in_new.svg"},
+        {"Rename", ":/icons/icons/rename.svg"},
+        {"Delete", ":/icons/icons/delete.svg"}
+    };
 
-    connect(openAct,   &QAction::triggered, this, &MainWindow::openSelected);
-    connect(revealAct, &QAction::triggered, this, &MainWindow::revealInExplorer);
-    connect(renameAct, &QAction::triggered, this, &MainWindow::renameSelected);
-    connect(deleteAct, &QAction::triggered, this, &MainWindow::deleteSelected);
-    connect(browseAct, &QAction::triggered, this, [this]{
-        const auto dir = QFileDialog::getExistingDirectory(this, "Choose root", fsModel_->rootPath());
-        if (!dir.isEmpty()) setRootPath(dir);
+    QVector<QPair<QString, QString>> navActions = {
+        {"Browse", ":/icons/icons/folder-search.svg"}
+    };
+
+    fileGroup = new RibbonGroup("File Actions", fileActions, this);
+    fileGroup->updateIcons(brandColor, iconSize);
+
+    navGroup = new RibbonGroup("Navigation", navActions, this);
+    navGroup->updateIcons(brandColor, iconSize);
+
+    tb->addWidget(fileGroup);
+    tb->addSeparator();
+    tb->addWidget(navGroup);
+
+
+    // Connect signals
+    connect(fileGroup, &RibbonGroup::actionTriggered, this, [this](const QString& name){
+        if (name == "Open")   openSelected();
+        if (name == "Rename") renameSelected();
+        if (name == "Delete") deleteSelected();
+    });
+    connect(navGroup, &RibbonGroup::actionTriggered, this, [this](const QString& name){
+        if (name == "Browse") {
+            auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
+            bool darkMode = provider && provider->darkMode();
+
+            FolderDialog dlg(this);
+            dlg.setDarkMode(darkMode);   // apply provider’s flag
+            if (dlg.exec() == QDialog::Accepted) {
+                QString dir = dlg.selectedPath();
+                if (!dir.isEmpty()) {
+                    fsModel_->setRootPath(dir);
+                    setRootPath(dir);
+                }
+            }
+        }
     });
 
-    auto* fileMenu = menuBar()->addMenu("&File");
-    fileMenu->addAction("Browse…", [this]{
-        const auto dir = QFileDialog::getExistingDirectory(this, "Choose root", fsModel_->rootPath());
-        if (!dir.isEmpty()) setRootPath(dir);
-    });
-    fileMenu->addSeparator();
-    fileMenu->addAction("Exit", [this]{ close(); });
+
 }
+
 
 void MainWindow::openSelected() {
     const auto idx = list_->currentIndex().isValid() ? list_->currentIndex() : tree_->currentIndex();
@@ -291,46 +314,73 @@ void MainWindow::setupConnections() {
     });
 }
 
-void MainWindow::togglePalette(bool checked) {
-    darkModeEnabled = checked;
-
-    // Pick accent color
-    QColor brandColor = darkModeEnabled ? QColor("#FF5722")   // Deep Orange
-                                        : QColor("#2196F3");  // Blue
-
-    QSize iconSize(24,24);
-
-    // Re‑generate tinted icons
-    auto openIcon   = tintSvgIcon(":/icons/open_in_new.svg", brandColor, iconSize);
-    auto revealIcon = tintSvgIcon(":/icons/file_find.svg",   brandColor, iconSize);
-    auto renameIcon = tintSvgIcon(":/icons/edit.svg",        brandColor, iconSize);
-    auto deleteIcon = tintSvgIcon(":/icons/delete.svg",      brandColor, iconSize);
-    auto browseIcon = tintSvgIcon(":/icons/folder_open.svg", brandColor, iconSize);
-
-    // Update toolbar actions (assuming you added them in order)
-    auto* tb = findChild<QToolBar*>("Actions");
-    if (tb && tb->actions().size() >= 5) {
-        tb->actions()[0]->setIcon(openIcon);
-        tb->actions()[1]->setIcon(revealIcon);
-        tb->actions()[2]->setIcon(renameIcon);
-        tb->actions()[3]->setIcon(deleteIcon);
-        tb->actions()[4]->setIcon(browseIcon);
+void MainWindow::togglePalette(bool darkMode) {
+    QPalette palette;
+    QColor brandColor;
+    if (darkMode) {
+        // Dark theme
+        palette.setColor(QPalette::Window, QColor(53,53,53));
+        palette.setColor(QPalette::WindowText, Qt::white);
+        palette.setColor(QPalette::Base, QColor(42,42,42));
+        palette.setColor(QPalette::AlternateBase, QColor(66,66,66));
+        palette.setColor(QPalette::ToolTipBase, Qt::white);
+        palette.setColor(QPalette::ToolTipText, Qt::white);
+        palette.setColor(QPalette::Text, Qt::white);
+        palette.setColor(QPalette::Button, QColor(53,53,53));
+        palette.setColor(QPalette::ButtonText, Qt::white);
+        palette.setColor(QPalette::BrightText, Qt::red);
+        palette.setColor(QPalette::Highlight, QColor(142,45,197).lighter());
+        palette.setColor(QPalette::HighlightedText, Qt::black);
+        themeToggle->setStyleSheet(R"(
+            QCheckBox { color: white; }
+            QCheckBox::indicator {
+                width: 12px; height: 12px; border: 1px solid black;
+            }
+            QCheckBox::indicator:checked {
+                image: url(:/icons/icons/checkBox_checked.png);
+                background-color: white;
+            }
+        )");
+        brandColor = QColor("#FF5722");
+    } else {
+        // Custom light theme
+        palette.setColor(QPalette::Window, QColor(245,245,245));        // soft background
+        palette.setColor(QPalette::WindowText, QColor(40,40,40));       // dark text
+        palette.setColor(QPalette::Base, QColor(255,255,255));          // text entry background
+        palette.setColor(QPalette::Text, QColor(30,30,30));             // text color
+        palette.setColor(QPalette::Highlight, QColor(100,150,255));     // selection blue
+        palette.setColor(QPalette::HighlightedText, Qt::white);         // text on highlight
+        palette.setColor(QPalette::Button, QColor(230,230,230));        // button background
+        palette.setColor(QPalette::ButtonText, QColor(40,40,40));       // button text
+        palette.setColor(QPalette::ToolTipBase, QColor(255,255,220));   // tooltip background
+        palette.setColor(QPalette::ToolTipText, QColor(30,30,30));      // tooltip text
+        themeToggle->setStyleSheet(R"(
+            QCheckBox { color: black; }
+            QCheckBox::indicator {
+                width: 12px; height: 12px; border: 1px solid black;
+            }
+            QCheckBox::indicator:checked {
+                image: url(:/icons/icons/checkBox_checked.png);
+                background-color: white;
+            }
+        )");
+        brandColor = QColor("#2196F3");
     }
+    qApp->setPalette(palette);
 
-    // Update folder icons via IconProvider
+    brandColor = darkMode ? QColor("#FF5722") : QColor("#2196F3");
+    QSize iconSize(32,32);
+
+    if (fileGroup) fileGroup->updateIcons(brandColor, iconSize);
+    if (navGroup)  navGroup->updateIcons(brandColor, iconSize);
+
     auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
     if (provider) {
-        provider->setBrandColor(brandColor);
-        // Force redraw of the whole model
+        provider->setDarkMode(darkMode);
         fsModel_->dataChanged(fsModel_->index(0,0),
                               fsModel_->index(fsModel_->rowCount()-1,0));
     }
 
-    // Optional: background
-    if (darkModeEnabled)
-        qApp->setStyleSheet("QMainWindow { background-color: #121212; }");
-    else
-        qApp->setStyleSheet("QMainWindow { background-color: #FAFAFA; }");
 }
 MainWindow::~MainWindow()
 {

@@ -1,3 +1,4 @@
+
 #include "iconfactory.h"
 #include <QSvgRenderer>
 #include <QPixmap>
