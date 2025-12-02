@@ -72,6 +72,10 @@ MainWindow::MainWindow(QWidget *parent)
     list_->setUniformRowHeights(true);
     list_->setSortingEnabled(true);
     list_->setAlternatingRowColors(false);
+    list_->setColumnWidth(0, 300);
+    list_->setColumnWidth(1, 120);
+    list_->setColumnWidth(2, 150);
+    list_->setColumnWidth(3, 180);
     // Show all columns in the main pane
     for (int col = 0; col < fsModel_->columnCount(); ++col) {
         list_->setColumnHidden(col, false);
