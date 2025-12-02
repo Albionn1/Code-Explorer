@@ -36,24 +36,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // --- Header bar ---
-    headerLabel_ = new QLabel("Home", this);
-    headerLabel_->setAlignment(Qt::AlignCenter);
-    headerLabel_->setStyleSheet("QLabel { background:#202020; color:#66ccff; padding:10px; font-size:16px; font-weight:bold; }");
-
-    themeToggle = new QCheckBox("Dark Mode", this);
-    themeToggle->setChecked(false);
-    themeToggle->setStyleSheet(R"(
-        QCheckBox::indicator {
-            width: 12px;
-            height: 12px;
-            border: 1px solid black;
-        }
-    )");
-    connect(themeToggle, &QCheckBox::toggled, this, &MainWindow::togglePalette);
+    // headerLabel_ = new QLabel("Home", this);
+    // headerLabel_->setAlignment(Qt::AlignCenter);
+    // headerLabel_->setStyleSheet("QLabel { background:#202020; color:#66ccff; padding:10px; font-size:16px; font-weight:bold; }");
 
     auto* headerLayout = new QHBoxLayout;
     headerLayout->addWidget(headerLabel_);
-    headerLayout->addWidget(themeToggle);
 
     auto* headerWidget = new QWidget(this);
     headerWidget->setLayout(headerLayout);
@@ -133,7 +121,7 @@ void MainWindow::setupActions() {
     tb = addToolBar("Ribbon");
     tb->setMovable(false);
 
-    QSize iconSize(32,32);
+    QSize iconSize(32,32); // same as the iconSize_(declared in mainwindow.h) but i'm also keeping this in case of bugs
     QColor brandColor = QColor(Qt::black);
 
     QVector<QPair<QString, QString>> fileActions = {
@@ -143,14 +131,20 @@ void MainWindow::setupActions() {
     };
 
     QVector<QPair<QString, QString>> navActions = {
-        {"Browse", ":/icons/icons/folder-search.svg"}
+        {"Browse", ":/icons/icons/folder-search.svg"},
+        {/*"Dark mode", ":/icons/icons/moon-waning-crescent.svg"*/
+        "DarkModeToggle", ":/icons/icons/moon-waning-crescent.svg"}
     };
 
     fileGroup = new RibbonGroup("File Actions", fileActions, this);
-    fileGroup->updateIcons(brandColor, iconSize);
+    fileGroup->updateIcons(brandColor, iconSize_);
 
     navGroup = new RibbonGroup("Navigation", navActions, this);
-    navGroup->updateIcons(brandColor, iconSize);
+    navGroup->updateIcons(brandColor, iconSize_);
+    auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
+    bool darkMode = provider && provider->darkMode();
+
+    updateDarkModeToggleUI(darkMode, iconSize_);
 
     tb->addWidget(fileGroup);
     tb->addSeparator();
@@ -185,7 +179,6 @@ void MainWindow::setupActions() {
                 currentPath = fsModel_->filePath(tree_->rootIndex());
             }
 
-            // 🔹 Open dialog starting at that folder
             FolderDialog dlg(currentPath, this);
             dlg.setDarkMode(provider);
 
@@ -198,6 +191,15 @@ void MainWindow::setupActions() {
                 }
             }
         }
+        if (name == "DarkModeToggle") {
+            auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
+            bool darkMode = provider->darkMode();
+
+            provider->setDarkMode(!darkMode);
+            updateDarkModeToggleUI(!darkMode, iconSize_);
+        }
+
+
     });
 
 }
@@ -372,16 +374,7 @@ void MainWindow::togglePalette(bool darkMode) {
         palette.setColor(QPalette::BrightText, Qt::red);
         palette.setColor(QPalette::Highlight, QColor(140,140,140).lighter());
         palette.setColor(QPalette::HighlightedText, Qt::black);
-        themeToggle->setStyleSheet(R"(
-            QCheckBox { color: white; }
-            QCheckBox::indicator {
-                width: 12px; height: 12px; border: 1px solid black;
-            }
-            QCheckBox::indicator:checked {
-                image: url(:/icons/icons/checkBox_checked.png);
-                background-color: white;
-            }
-        )");
+
         brandColor = QColor("red");
         tb->setStyleSheet(
             "QToolBar { background:#2b2b2b; }"
@@ -400,16 +393,7 @@ void MainWindow::togglePalette(bool darkMode) {
         palette.setColor(QPalette::ButtonText, QColor(40,40,40));       // button text
         palette.setColor(QPalette::ToolTipBase, QColor(255,255,220));   // tooltip background
         palette.setColor(QPalette::ToolTipText, QColor(30,30,30));      // tooltip text
-        themeToggle->setStyleSheet(R"(
-            QCheckBox { color: black; }
-            QCheckBox::indicator {
-                width: 12px; height: 12px; border: 1px solid black;
-            }
-            QCheckBox::indicator:checked {
-                image: url(:/icons/icons/checkBox_checked.png);
-                background-color: white;
-            }
-        )");
+
         brandColor = QColor("#2196F3");
     }
     qApp->setPalette(palette);
@@ -450,6 +434,18 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
     }
 }
 
+void MainWindow::updateDarkModeToggleUI(bool darkMode, const QSize& iconSize) {
+    // Apply palette
+    togglePalette(darkMode);
+
+    // Choose icon/text based on state
+    QString iconPath = darkMode ? ":/icons/icons/white-balance-sunny.svg"
+                                : ":/icons/icons/moon-waning-crescent.svg";
+    QString text     = darkMode ? "Light Mode" : "Dark Mode";
+    QColor tint      = darkMode ? Qt::white : Qt::black;
+
+    navGroup->updateSingleIcon("DarkModeToggle", iconPath, tint, iconSize, text);
+}
 MainWindow::~MainWindow()
 {
     delete ui;

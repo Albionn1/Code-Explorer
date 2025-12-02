@@ -11,5 +11,8 @@
         <file>icons/arrow-up-bold.svg</file>
         <file>icons/new-folder.svg</file>
         <file>icons/refresh.svg</file>
+        <file>icons/theme-light-dark.svg</file>
+        <file>icons/moon-waning-crescent.svg</file>
+        <file>icons/white-balance-sunny.svg</file>
     </qresource>
 </RCC>

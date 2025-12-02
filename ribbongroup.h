@@ -14,10 +14,18 @@ public:
 
     void updateIcons(const QColor& color, const QSize& size);
 
+    void updateSingleIcon(const QString& actionName,
+                          const QString& iconPath,
+                          const QColor& color,
+                          const QSize& size,
+                          const QString& newText = QString());
+
 signals:
     void actionTriggered(const QString& name);
 
 private:
-    QVector<QToolButton*> buttons_;
-    QVector<QPair<QString, QString>> actionDefs_;
+    QVector<QToolButton*> buttons_;               // ordered list of buttons
+    QVector<QPair<QString, QString>> actionDefs_; // action name + icon path
+    QMap<QString, QToolButton*> buttonMap_;       // lookup by action name
+
 };

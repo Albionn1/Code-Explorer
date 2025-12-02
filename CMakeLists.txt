@@ -26,7 +26,7 @@ qt_add_executable(FileExplorer
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
     resources.qrc
-    folderdelegate.h folderdelegate.cpp
+
     iconfactory.h iconfactory.cpp
     ribbongroup.h ribbongroup.cpp
     folderdialog.h folderdialog.cpp

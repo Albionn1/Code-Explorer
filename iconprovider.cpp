@@ -54,9 +54,8 @@ QIcon IconProvider::icon(const QFileInfo &info) const {
         ? ":/icons/icons/folder-open.svg"
         : ":/icons/icons/folder.svg";
 
-        QColor brandColor = darkModeEnabled_ ? QColor("#FF5722")   // orange for dark mode
-                                             : QColor("#2196F3");  // blue for light mode
-        return tintSvgIcon(res, brandColor, QSize(16,16));
+        QColor folderBlue("#2196F3");
+        return tintSvgIcon(res, folderBlue, QSize(16,16));
     }
     return QFileIconProvider::icon(info);
 }

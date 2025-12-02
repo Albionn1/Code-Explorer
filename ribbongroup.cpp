@@ -2,6 +2,7 @@
 #include <QSvgRenderer>
 #include <QPixmap>
 #include <QPainter>
+#include <QMap>
 
 // same tintSvgIcon helper as before
 static QIcon tintSvgIcon(const QString& resPath, const QColor& color, const QSize& size) {
@@ -39,10 +40,14 @@ RibbonGroup::RibbonGroup(const QString& groupName,
         btn->setAutoRaise(true);
         btn->setStyleSheet("QToolButton { border:none; background:transparent; }");
 
-        buttons_.append(btn);
+        buttons_.append(btn);              // ordered list
+        buttonMap_[act.first] = btn;       // lookup by name
+
         hbox->addWidget(btn);
 
-        connect(btn, &QToolButton::clicked, this, [this, act]{ emit actionTriggered(act.first); });
+        connect(btn, &QToolButton::clicked, this, [this, act] {
+            emit actionTriggered(act.first);
+        });
     }
 
     vbox->addLayout(hbox);
@@ -51,7 +56,6 @@ RibbonGroup::RibbonGroup(const QString& groupName,
     lbl->setAlignment(Qt::AlignCenter);
     lbl->setStyleSheet("QLabel { font-weight:bold; color:gray; }");
     vbox->addWidget(lbl);
-
 }
 
 void RibbonGroup::updateIcons(const QColor& color, const QSize& size) {
@@ -59,4 +63,24 @@ void RibbonGroup::updateIcons(const QColor& color, const QSize& size) {
         const auto& def = actionDefs_[i];
         buttons_[i]->setIcon(tintSvgIcon(def.second, color, size));
     }
+}
+
+void RibbonGroup::updateSingleIcon(const QString& actionName,
+                                   const QString& iconPath,
+                                   const QColor& color,
+                                   const QSize& size,
+                                   const QString& newText) {
+    if (buttonMap_.contains(actionName)) {
+        QToolButton* btn = buttonMap_[actionName];
+
+        // Update icon
+        btn->setIcon(tintSvgIcon(iconPath, color, size));
+
+        // Update text if provided
+        if (!newText.isEmpty()) {
+            btn->setText(newText);
+
+        }
+    }
+
 }

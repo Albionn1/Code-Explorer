@@ -33,7 +33,6 @@ private:
     QTreeView* tree_ = nullptr;
     QListView* list_ = nullptr;
     QTextEdit* preview_ = nullptr;
-    QCheckBox* themeToggle;
     QItemSelectionModel* selModel_ = nullptr;
     QVector<int> roles = {Qt::DecorationRole};
     QLabel* headerLabel_ = nullptr;
@@ -44,6 +43,8 @@ private:
     RibbonGroup* fileGroup = nullptr;
     RibbonGroup* navGroup  = nullptr;
     QToolBar* tb;
+    QSize iconSize_{32,32};
+
 
     void setupActions();
     void setupConnections();
@@ -54,5 +55,6 @@ private:
     void setRootPath(const QString& path);
     void togglePalette(bool darkMode);
     void onItemDoubleClicked(const QModelIndex& index);
+    void updateDarkModeToggleUI(bool darkMode, const QSize& iconSize);
 };
 #endif // MAINWINDOW_H
