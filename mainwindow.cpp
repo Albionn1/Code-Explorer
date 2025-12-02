@@ -31,46 +31,38 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-
-    // --- Header bar ---
-    // headerLabel_ = new QLabel("Home", this);
-    // headerLabel_->setAlignment(Qt::AlignCenter);
-    // headerLabel_->setStyleSheet("QLabel { background:#202020; color:#66ccff; padding:10px; font-size:16px; font-weight:bold; }");
-
-    auto* headerLayout = new QHBoxLayout;
-    headerLayout->addWidget(headerLabel_);
-
-    auto* headerWidget = new QWidget(this);
-    headerWidget->setLayout(headerLayout);
-
+    pathEdit_ = new QLineEdit(this);
     // --- File system model ---
     fsModel_ = new QFileSystemModel(this);
     fsModel_->setRootPath(QDir::homePath());
     fsModel_->setReadOnly(false);
+
+    // Icon provider (optional)
     auto* provider = new IconProvider();
     fsModel_->setIconProvider(provider);
 
+    // --- Tree view ---
     tree_ = new QTreeView(this);
     tree_->setModel(fsModel_);
     tree_->setHeaderHidden(false);
     tree_->setAnimated(true);
     tree_->setExpandsOnDoubleClick(true);
     tree_->setUniformRowHeights(true);
+    for (int col = 1; col < fsModel_->columnCount(); ++col) {
+        tree_->hideColumn(col);
+    }
 
-    // Connect expansion/collapse to provider state
+
+    // keep provider state in sync
     connect(tree_, &QTreeView::expanded, this, [this, provider](const QModelIndex &index) {
-        if (fsModel_->isDir(index))
+        if (index.isValid() && fsModel_->isDir(index))
             provider->setExpanded(fsModel_->filePath(index), true);
     });
     connect(tree_, &QTreeView::collapsed, this, [this, provider](const QModelIndex &index) {
-        if (fsModel_->isDir(index))
+        if (index.isValid() && fsModel_->isDir(index))
             provider->setExpanded(fsModel_->filePath(index), false);
     });
-
-
 
     // --- List view ---
     list_ = new QListView(this);
@@ -86,17 +78,20 @@ MainWindow::MainWindow(QWidget *parent)
     auto* verticalSplit = new QSplitter(Qt::Vertical, this);
     verticalSplit->addWidget(list_);
     verticalSplit->addWidget(preview_);
+    verticalSplit->setStretchFactor(0, 1);
+    verticalSplit->setStretchFactor(1, 0);
 
     // --- Main split: tree + verticalSplit ---
-    auto* mainSplit = new QSplitter(this);
+    auto* mainSplit = new QSplitter(Qt::Horizontal, this);
     mainSplit->addWidget(tree_);
     mainSplit->addWidget(verticalSplit);
+    mainSplit->setStretchFactor(0, 0);
+    mainSplit->setStretchFactor(1, 1);
 
     // --- Central layout ---
     auto* centralLayout = new QVBoxLayout;
     centralLayout->setContentsMargins(0,0,0,0);
     centralLayout->setSpacing(0);
-    centralLayout->addWidget(headerWidget);
     centralLayout->addWidget(mainSplit);
 
     auto* central = new QWidget(this);
@@ -107,13 +102,15 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar()->showMessage("Ready");
     statusBar()->setStyleSheet("QStatusBar { background:#202020; color:#66ccff; }");
 
+    // --- Initial roots ---
+    const QString home = QDir::homePath();
+    const QModelIndex homeIndex = fsModel_->index(home);
+    tree_->setRootIndex(homeIndex);
+    // list_->setRootIndex(homeIndex);
+
     setupActions();
     setupConnections();
-
-    tree_->setRootIndex(fsModel_->index(QDir::homePath()));
-    list_->setRootIndex(fsModel_->index(QDir::homePath()));
-
-    resize(1200, 800); // modern widescreen default
+    resize(1200, 800);
     setMinimumSize(1000, 700);
 }
 
@@ -121,8 +118,7 @@ void MainWindow::setupActions() {
     tb = addToolBar("Ribbon");
     tb->setMovable(false);
 
-    QSize iconSize(32,32); // same as the iconSize_(declared in mainwindow.h) but i'm also keeping this in case of bugs
-    QColor brandColor = QColor(Qt::black);
+    const QColor brandColor = QColor(Qt::black);
 
     QVector<QPair<QString, QString>> fileActions = {
         {"Open",   ":/icons/icons/open_in_new.svg"},
@@ -131,9 +127,8 @@ void MainWindow::setupActions() {
     };
 
     QVector<QPair<QString, QString>> navActions = {
-        {"Browse", ":/icons/icons/folder-search.svg"},
-        {/*"Dark mode", ":/icons/icons/moon-waning-crescent.svg"*/
-        "DarkModeToggle", ":/icons/icons/moon-waning-crescent.svg"}
+        {"Browse",        ":/icons/icons/folder-search.svg"},
+        {"DarkModeToggle",":/icons/icons/moon-waning-crescent.svg"}
     };
 
     fileGroup = new RibbonGroup("File Actions", fileActions, this);
@@ -141,69 +136,116 @@ void MainWindow::setupActions() {
 
     navGroup = new RibbonGroup("Navigation", navActions, this);
     navGroup->updateIcons(brandColor, iconSize_);
-    auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
-    bool darkMode = provider && provider->darkMode();
 
+    // --- Back / Forward actions ---
+    backAction = new QAction(
+        tintSvgIcon(":/icons/icons/arrow-left.svg", brandColor, iconSize_),
+        "Back", this
+        );
+    forwardAction = new QAction(
+        tintSvgIcon(":/icons/icons/arrow-right.svg", brandColor, iconSize_),
+        "Forward", this
+        );
+    backAction->setEnabled(false);
+    forwardAction->setEnabled(false);
+
+    connect(backAction, &QAction::triggered, this, [this]() {
+        if (historyIndex_ > 0) {
+            historyIndex_--;
+            navigateTo(history_[historyIndex_], false);
+        }
+    });
+    connect(forwardAction, &QAction::triggered, this, [this]() {
+        if (historyIndex_ < history_.size() - 1) {
+            historyIndex_++;
+            navigateTo(history_[historyIndex_], false);
+        }
+    });
+
+    // --- Wrap actions in tool buttons ---
+    QToolButton* backButton = new QToolButton(this);
+    backButton->setDefaultAction(backAction);
+
+    QToolButton* forwardButton = new QToolButton(this);
+    forwardButton->setDefaultAction(forwardAction);
+
+    // --- Layout container ---
+    QWidget* container = new QWidget(this);
+    QHBoxLayout* layout = new QHBoxLayout(container);
+    layout->setContentsMargins(0,0,0,0);
+    layout->setSpacing(8);
+
+    // Icons on the left
+    layout->addWidget(backButton);
+    layout->addWidget(forwardButton);
+    layout->addWidget(fileGroup);
+    layout->addWidget(navGroup);
+
+    // Stretch before address bar
+    layout->addStretch();
+
+    // Address bar in the center
+    layout->addWidget(pathEdit_);
+
+    // Stretch after address bar
+    layout->addStretch();
+
+    container->setLayout(layout);
+    tb->addWidget(container);
+
+    // Initial dark mode state
+    IconProvider* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
+    bool darkMode = provider ? provider->darkMode() : false;
     updateDarkModeToggleUI(darkMode, iconSize_);
 
-    tb->addWidget(fileGroup);
-    tb->addSeparator();
-    tb->addWidget(navGroup);
-
-
-    // Connect signals
+    // Signals (same as before)...
     connect(fileGroup, &RibbonGroup::actionTriggered, this, [this](const QString& name){
         if (name == "Open")   openSelected();
-        if (name == "Rename") renameSelected();
-        if (name == "Delete") deleteSelected();
+        else if (name == "Rename") renameSelected();
+        else if (name == "Delete") deleteSelected();
     });
+
     connect(navGroup, &RibbonGroup::actionTriggered, this, [this](const QString& name){
         if (name == "Browse") {
-            auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
-            bool darkMode = provider && provider->darkMode();
+            IconProvider* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
 
-            // Get highlighted index from tree or list
             QModelIndex idx = tree_->currentIndex();
             if (!idx.isValid()) idx = list_->currentIndex();
 
             QString currentPath;
             if (idx.isValid()) {
                 QFileInfo info(fsModel_->filePath(idx));
-                if (info.isDir()) {
-                    currentPath = info.absoluteFilePath();   // folder directly
-                } else {
-                    currentPath = info.absolutePath();       // parent folder if file
-                }
+                currentPath = info.isDir() ? info.absoluteFilePath()
+                                           : info.absolutePath();
             } else {
-                // fallback to root if nothing highlighted
-                currentPath = fsModel_->filePath(tree_->rootIndex());
+                currentPath = QDir::homePath();
             }
 
             FolderDialog dlg(currentPath, this);
-            dlg.setDarkMode(provider);
+            if (provider) dlg.setDarkMode(provider);
 
             if (dlg.exec() == QDialog::Accepted) {
                 QString dir = dlg.selectedPath();
                 if (!dir.isEmpty()) {
-                    // navigate explorer into chosen folder
-                    fsModel_->setRootPath(dir);
-                    setRootPath(dir);
+                    navigateTo(dir);
                 }
             }
         }
-        if (name == "DarkModeToggle") {
-            auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
-            bool darkMode = provider->darkMode();
-
-            provider->setDarkMode(!darkMode);
-            updateDarkModeToggleUI(!darkMode, iconSize_);
+        else if (name == "DarkModeToggle") {
+            IconProvider* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
+            if (provider) {
+                bool darkMode = provider->darkMode();
+                provider->setDarkMode(!darkMode);
+                updateDarkModeToggleUI(!darkMode, iconSize_);
+            }
         }
-
-
     });
 
+    connect(pathEdit_, &QLineEdit::returnPressed, this, [this]() {
+        QString dir = pathEdit_->text();
+        navigateTo(dir);
+    });
 }
-
 
 void MainWindow::openSelected() {
     const auto idx = list_->currentIndex().isValid() ? list_->currentIndex() : tree_->currentIndex();
@@ -235,7 +277,7 @@ void MainWindow::renameSelected() {
     } else {
         auto dirIndex = fsModel_->index(oldInfo.dir().absolutePath());
         list_->setRootIndex(dirIndex);
-        tree_->setRootIndex(dirIndex);
+        // tree_->setRootIndex(dirIndex);
     }
 }
 
@@ -258,7 +300,7 @@ void MainWindow::deleteSelected() {
 
 void MainWindow::setRootPath(const QString& path) {
     const auto rootIdx = fsModel_->index(path);
-    tree_->setRootIndex(rootIdx);
+    // tree_->setRootIndex(rootIdx);
     list_->setRootIndex(rootIdx);
     statusBar()->showMessage(path);
 }
@@ -271,16 +313,18 @@ void MainWindow::setupConnections() {
                 statusBar()->showMessage(fsModel_->filePath(current));
             });
 
-    connect(list_, &QListView::doubleClicked, this, [this](const QModelIndex& idx){
-        if (!idx.isValid()) return;
-        const auto path = fsModel_->filePath(idx);
-        if (fsModel_->isDir(idx)) {
-            list_->setRootIndex(idx);
+    connect(list_, &QListView::doubleClicked, this, [this](const QModelIndex &index) {
+        if (!index.isValid()) return;
+
+        if (fsModel_->isDir(index)) {
+            QString dir = fsModel_->filePath(index);
+            // This is the core fix: use navigateTo for directory changes
+            navigateTo(dir);
         } else {
+            // Double-click on a file
             openSelected();
         }
     });
-
     // Preview text files when selection changes
     connect(list_->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex& current, const QModelIndex&){
@@ -297,16 +341,11 @@ void MainWindow::setupConnections() {
     connect(selModel_, &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex& current, const QModelIndex&) {
                 QString path = fsModel_->filePath(current);
-                headerLabel_->setText(path);
-
-                auto* effect = new QGraphicsColorizeEffect(headerLabel_);
-                headerLabel_->setGraphicsEffect(effect);
-                auto* anim = new QPropertyAnimation(effect, "color");
-                anim->setDuration(600);
-                anim->setStartValue(QColor(0,180,255));
-                anim->setEndValue(QColor(0,0,0,0));
-                anim->start(QAbstractAnimation::DeleteWhenStopped);
+                list_->setRootIndex(current);
+                statusBar()->showMessage(path);
+                updateAddressBar(path);
             });
+
     auto* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
 
     connect(tree_, &QTreeView::expanded, this, [this, provider](const QModelIndex &index) {
@@ -333,11 +372,22 @@ void MainWindow::setupConnections() {
             fsModel_->dataChanged(index.parent(), index.parent(), roles);
         }
     });
-    connect(tree_, &QTreeView::doubleClicked,
-            this, &MainWindow::onItemDoubleClicked);
+    connect(tree_, &QTreeView::clicked, this, [this](const QModelIndex &index) {
+        if (fsModel_->isDir(index)) {
+            QString dir = fsModel_->filePath(index);
+            // Call navigateTo() to set roots, update address bar, and manage history
+            navigateTo(dir);
+        }
+    });
 
-    connect(list_, &QListView::doubleClicked,
-            this, &MainWindow::onItemDoubleClicked);
+    connect(list_, &QListView::doubleClicked, this, [this](const QModelIndex &index) {
+        if (fsModel_->isDir(index)) {
+            QString dir = fsModel_->filePath(index);
+            // Call navigateTo() to set roots, update address bar, and manage history
+            navigateTo(dir);
+        }
+    });
+
 }
 void MainWindow::onItemDoubleClicked(const QModelIndex& index) {
     if (!index.isValid()) return;
@@ -348,6 +398,7 @@ void MainWindow::onItemDoubleClicked(const QModelIndex& index) {
         QString dir = info.absoluteFilePath();
         fsModel_->setRootPath(dir);
         setRootPath(dir);
+        updateAddressBar(dir);
     } else {
         // For files, you can either open them or just show details
         statusBar()->showMessage("File selected: " + info.fileName());
@@ -417,21 +468,35 @@ void MainWindow::togglePalette(bool darkMode) {
 }
 
 void MainWindow::applyToolbarTheme(bool darkMode) {
+    // Determine the icon color based on the mode
+    const QColor iconTint = darkMode ? Qt::white : Qt::black;
+    const QSize iconSize(32, 32); // Use a consistent size
+
     if (darkMode) {
         tb->setStyleSheet(
             "QToolBar { background:#2b2b2b; }"
             "QToolButton { color:white; }"
             );
-        fileGroup->updateIcons(Qt::white, QSize(32,32));
-        navGroup->updateIcons(Qt::white, QSize(32,32));
     } else {
         tb->setStyleSheet(
             "QToolBar { background:#fdfdfd; }"
             "QToolButton { color:black; }"
             );
-        fileGroup->updateIcons(Qt::black, QSize(32,32));
-        navGroup->updateIcons(Qt::black, QSize(32,32));
     }
+
+    // --- 1. Update RibbonGroup Icons ---
+    // Use the determined tint color
+    fileGroup->updateIcons(iconTint, iconSize);
+    navGroup->updateIcons(iconTint, iconSize);
+
+    // --- 2. Update Back/Forward Action Icons ---
+    // Use the custom tintSvgIcon function to re-tint the arrow SVGs
+    backAction->setIcon(
+        tintSvgIcon(":/icons/icons/arrow-left.svg", iconTint, iconSize)
+        );
+    forwardAction->setIcon(
+        tintSvgIcon(":/icons/icons/arrow-right.svg", iconTint, iconSize)
+        );
 }
 
 void MainWindow::updateDarkModeToggleUI(bool darkMode, const QSize& iconSize) {
@@ -445,6 +510,34 @@ void MainWindow::updateDarkModeToggleUI(bool darkMode, const QSize& iconSize) {
     QColor tint      = darkMode ? Qt::white : Qt::black;
 
     navGroup->updateSingleIcon("DarkModeToggle", iconPath, tint, iconSize, text);
+}
+
+void MainWindow::updateAddressBar(const QString& dir) {
+    if (pathEdit_) pathEdit_->setText(dir);
+}
+
+void MainWindow::navigateTo(const QString& dir, bool addToHistory) {
+    if (!QDir(dir).exists()) return;
+
+    fsModel_->setRootPath(dir);
+    QModelIndex rootIdx = fsModel_->index(dir);
+    // tree_->setRootIndex(rootIdx);
+    list_->setRootIndex(rootIdx);
+    updateAddressBar(dir);
+    statusBar()->showMessage("Navigated to " + dir);
+
+    if (addToHistory) {
+        // Trim forward history if we navigated manually
+        while (history_.size() - 1 > historyIndex_)
+            history_.removeLast();
+
+        history_.append(dir);
+        historyIndex_ = history_.size() - 1;
+    }
+
+    // Update button enabled states
+    backAction->setEnabled(historyIndex_ > 0);
+    forwardAction->setEnabled(historyIndex_ < history_.size() - 1);
 }
 MainWindow::~MainWindow()
 {

@@ -44,7 +44,16 @@ private:
     RibbonGroup* navGroup  = nullptr;
     QToolBar* tb;
     QSize iconSize_{32,32};
+    QWidget* headerWidget_;
+    QHBoxLayout* headerLayout_;
+    QLineEdit* pathEdit_;
+    QStringList history_;
+    int historyIndex_ = -1;
 
+    QAction* backAction = nullptr;
+    QAction* forwardAction = nullptr;
+
+    void navigateTo(const QString& dir, bool addToHistory = true);
 
     void setupActions();
     void setupConnections();
@@ -56,5 +65,6 @@ private:
     void togglePalette(bool darkMode);
     void onItemDoubleClicked(const QModelIndex& index);
     void updateDarkModeToggleUI(bool darkMode, const QSize& iconSize);
+    void updateAddressBar(const QString& dir);
 };
 #endif // MAINWINDOW_H

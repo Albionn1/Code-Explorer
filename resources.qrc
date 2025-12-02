@@ -14,5 +14,7 @@
         <file>icons/theme-light-dark.svg</file>
         <file>icons/moon-waning-crescent.svg</file>
         <file>icons/white-balance-sunny.svg</file>
+        <file>icons/arrow-left.svg</file>
+        <file>icons/arrow-right.svg</file>
     </qresource>
 </RCC>
