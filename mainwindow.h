@@ -31,7 +31,7 @@ private:
 
     QFileSystemModel* fsModel_ = nullptr;
     QTreeView* tree_ = nullptr;
-    QListView* list_ = nullptr;
+    QTreeView* list_ = nullptr;
     QTextEdit* preview_ = nullptr;
     QItemSelectionModel* selModel_ = nullptr;
     QVector<int> roles = {Qt::DecorationRole};

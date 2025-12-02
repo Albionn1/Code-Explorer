@@ -28,6 +28,7 @@
 #include <QGraphicsColorizeEffect>
 #include <QPropertyAnimation>
 #include <QStyleFactory>
+#include <qheaderview.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -65,10 +66,17 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // --- List view ---
-    list_ = new QListView(this);
+    list_ = new QTreeView(this);
     list_->setModel(fsModel_);
-    list_->setViewMode(QListView::ListMode);
-    list_->setUniformItemSizes(true);
+    list_->setRootIndex(fsModel_->index(QDir::homePath()));
+    list_->setUniformRowHeights(true);
+    list_->setSortingEnabled(true);
+    list_->setAlternatingRowColors(false);
+    // Show all columns in the main pane
+    for (int col = 0; col < fsModel_->columnCount(); ++col) {
+        list_->setColumnHidden(col, false);
+    }
+
 
     // --- Preview ---
     preview_ = new QTextEdit(this);
