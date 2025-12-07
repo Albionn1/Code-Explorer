@@ -20,6 +20,14 @@ public:
                           const QSize& size,
                           const QString& newText = QString());
 
+    QAction* findAction(const QString& name) const {
+        for (QAction* act : actions_) {
+            if (act->text() == name)
+                return act;
+        }
+        return nullptr;
+    }
+
 signals:
     void actionTriggered(const QString& name);
 
@@ -27,5 +35,6 @@ private:
     QVector<QToolButton*> buttons_;               // ordered list of buttons
     QVector<QPair<QString, QString>> actionDefs_; // action name + icon path
     QMap<QString, QToolButton*> buttonMap_;       // lookup by action name
+    QList<QAction*> actions_;
 
 };

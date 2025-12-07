@@ -148,7 +148,7 @@ void MainWindow::setupActions() {
     };
 
     QVector<QPair<QString, QString>> viewActions = {
-        {"PreviewPane", ":/icons/icons/dock-window.svg"}
+        {"Preview Pane", ":/icons/icons/dock-window.svg"}
     };
 
     fileGroup = new RibbonGroup("File Actions", fileActions, this);
@@ -185,12 +185,6 @@ void MainWindow::setupActions() {
         }
     });
 
-    // --- Wrap actions in tool buttons ---
-    QToolButton* backButton = new QToolButton(this);
-    backButton->setDefaultAction(backAction);
-
-    QToolButton* forwardButton = new QToolButton(this);
-    forwardButton->setDefaultAction(forwardAction);
 
     // --- Layout container ---
     QWidget* container = new QWidget(this);
@@ -199,8 +193,6 @@ void MainWindow::setupActions() {
     layout->setSpacing(8);
 
     // Icons on the left
-    layout->addWidget(backButton);
-    layout->addWidget(forwardButton);
     layout->addWidget(fileGroup);
     layout->addWidget(navGroup);
     layout->addWidget(viewGroup);
@@ -230,6 +222,19 @@ void MainWindow::setupActions() {
     });
 
     connect(navGroup, &RibbonGroup::actionTriggered, this, [this](const QString& name){
+        if (name == "Back") {
+            if (historyIndex_ > 0) {
+                historyIndex_--;
+                navigateTo(history_[historyIndex_], false);
+            }
+        }
+        else if (name == "Forward") {
+            if (historyIndex_ < history_.size() - 1) {
+                historyIndex_++;
+                navigateTo(history_[historyIndex_], false);
+            }
+        }
+
         if (name == "Browse") {
             IconProvider* provider = static_cast<IconProvider*>(fsModel_->iconProvider());
 
@@ -272,7 +277,7 @@ void MainWindow::setupActions() {
 
     connect(viewGroup, &RibbonGroup::actionTriggered, this,
             [this](const QString& name){
-                if (name == "PreviewPane") {
+                if (name == "Preview Pane") {
                     if (!previewVisible_) {
                         preview_->show();
                         previewVisible_ = true;
@@ -356,10 +361,8 @@ void MainWindow::setupConnections() {
 
         if (fsModel_->isDir(index)) {
             QString dir = fsModel_->filePath(index);
-            // This is the core fix: use navigateTo for directory changes
             navigateTo(dir);
         } else {
-            // Double-click on a file
             openSelected();
         }
     });
@@ -413,7 +416,6 @@ void MainWindow::setupConnections() {
     connect(tree_, &QTreeView::clicked, this, [this](const QModelIndex &index) {
         if (fsModel_->isDir(index)) {
             QString dir = fsModel_->filePath(index);
-            // Call navigateTo() to set roots, update address bar, and manage history
             navigateTo(dir);
         }
     });
@@ -421,7 +423,6 @@ void MainWindow::setupConnections() {
     connect(list_, &QListView::doubleClicked, this, [this](const QModelIndex &index) {
         if (fsModel_->isDir(index)) {
             QString dir = fsModel_->filePath(index);
-            // Call navigateTo() to set roots, update address bar, and manage history
             navigateTo(dir);
         }
     });
@@ -438,9 +439,7 @@ void MainWindow::onItemDoubleClicked(const QModelIndex& index) {
         setRootPath(dir);
         updateAddressBar(dir);
     } else {
-        // For files, you can either open them or just show details
         statusBar()->showMessage("File selected: " + info.fileName());
-        // Or trigger preview logic here
     }
 }
 
@@ -526,12 +525,12 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
     navGroup->updateIcons(iconTint, iconSize);
     viewGroup->updateIcons(iconTint, iconSize);
 
-    backAction->setIcon(
-        tintSvgIcon(":/icons/icons/arrow-left.svg", iconTint, iconSize)
-        );
-    forwardAction->setIcon(
-        tintSvgIcon(":/icons/icons/arrow-right.svg", iconTint, iconSize)
-        );
+    // backAction->setIcon(
+    //     tintSvgIcon(":/icons/icons/arrow-left.svg", iconTint, iconSize)
+    //     );
+    // forwardAction->setIcon(
+    //     tintSvgIcon(":/icons/icons/arrow-right.svg", iconTint, iconSize)
+    //     );
 }
 
 void MainWindow::updateDarkModeToggleUI(bool darkMode, const QSize& iconSize) {
@@ -569,8 +568,10 @@ void MainWindow::navigateTo(const QString& dir, bool addToHistory) {
     updateNavButtons();
 }
 void MainWindow::updateNavButtons() {
-    backAction->setEnabled(historyIndex_ > 0);
-    forwardAction->setEnabled(historyIndex_ < history_.size() - 1);
+    QAction* back = navGroup->findAction("Back");
+    QAction* forward = navGroup->findAction("Forward");
+    if (back) back->setEnabled(historyIndex_ > 0);
+    if (forward) forward->setEnabled(historyIndex_ < history_.size() - 1);
 }
 
 MainWindow::~MainWindow()

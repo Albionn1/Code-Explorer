@@ -27,6 +27,7 @@ public:
     ~MainWindow();
 
     void applyToolbarTheme(bool darkMode);
+
 private:
     Ui::MainWindow *ui;
 
