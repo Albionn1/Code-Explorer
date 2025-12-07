@@ -10,6 +10,7 @@
 #include <QCheckBox>
 #include <qlabel.h>
 #include <QVector>
+#include <QSplitter>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -42,6 +43,7 @@ private:
     QAction* browseAct_ = nullptr;
     RibbonGroup* fileGroup = nullptr;
     RibbonGroup* navGroup  = nullptr;
+    RibbonGroup* viewGroup = nullptr;
     QToolBar* tb;
     QSize iconSize_{32,32};
     QWidget* headerWidget_;
@@ -49,9 +51,13 @@ private:
     QLineEdit* pathEdit_;
     QStringList history_;
     int historyIndex_ = -1;
+    QSplitter* mainSplit;
+    QSplitter* rightSplit;
 
     QAction* backAction = nullptr;
     QAction* forwardAction = nullptr;
+
+    bool previewVisible_ = false;
 
     void navigateTo(const QString& dir, bool addToHistory = true);
 
@@ -66,5 +72,6 @@ private:
     void onItemDoubleClicked(const QModelIndex& index);
     void updateDarkModeToggleUI(bool darkMode, const QSize& iconSize);
     void updateAddressBar(const QString& dir);
+    void updateNavButtons();
 };
 #endif // MAINWINDOW_H

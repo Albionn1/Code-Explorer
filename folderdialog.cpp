@@ -176,7 +176,7 @@ void FolderDialog::onPathEdited() {
 }
 
 void FolderDialog::setDarkMode(IconProvider* provider) {
-    bool enabled = provider->darkMode();   // use your flag
+    bool enabled = provider->darkMode();
     QSize iconSize(24,24);
     QColor iconColor = enabled ? Qt::white : Qt::black;
     QColor accentColor = enabled ? QColor("#FF5722") : QColor("#2196F3");

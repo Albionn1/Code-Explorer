@@ -86,19 +86,21 @@ MainWindow::MainWindow(QWidget *parent)
     preview_ = new QTextEdit(this);
     preview_->setReadOnly(true);
 
-    // --- Vertical split: list + preview ---
-    auto* verticalSplit = new QSplitter(Qt::Vertical, this);
-    verticalSplit->addWidget(list_);
-    verticalSplit->addWidget(preview_);
-    verticalSplit->setStretchFactor(0, 1);
-    verticalSplit->setStretchFactor(1, 0);
-
     // --- Main split: tree + verticalSplit ---
-    auto* mainSplit = new QSplitter(Qt::Horizontal, this);
+    rightSplit = new QSplitter(Qt::Vertical, this);
+    rightSplit->addWidget(list_);
+    rightSplit->addWidget(preview_);
+    rightSplit->setStretchFactor(0, 1);
+    rightSplit->setStretchFactor(1, 0);
+    preview_->hide(); // start hidden
+
+    // Main split: tree + rightSplit
+    mainSplit = new QSplitter(Qt::Horizontal, this);
     mainSplit->addWidget(tree_);
-    mainSplit->addWidget(verticalSplit);
+    mainSplit->addWidget(rightSplit);
     mainSplit->setStretchFactor(0, 0);
     mainSplit->setStretchFactor(1, 1);
+
 
     // --- Central layout ---
     auto* centralLayout = new QVBoxLayout;
@@ -139,8 +141,14 @@ void MainWindow::setupActions() {
     };
 
     QVector<QPair<QString, QString>> navActions = {
+        {"Back",          ":/icons/icons/arrow-left.svg"},
+        {"Forward",       ":/icons/icons/arrow-right.svg"},
         {"Browse",        ":/icons/icons/folder-search.svg"},
         {"DarkModeToggle",":/icons/icons/moon-waning-crescent.svg"}
+    };
+
+    QVector<QPair<QString, QString>> viewActions = {
+        {"PreviewPane", ":/icons/icons/dock-window.svg"}
     };
 
     fileGroup = new RibbonGroup("File Actions", fileActions, this);
@@ -148,6 +156,9 @@ void MainWindow::setupActions() {
 
     navGroup = new RibbonGroup("Navigation", navActions, this);
     navGroup->updateIcons(brandColor, iconSize_);
+
+    viewGroup = new RibbonGroup("View", viewActions, this);
+    viewGroup->updateIcons(brandColor, iconSize_);
 
     // --- Back / Forward actions ---
     backAction = new QAction(
@@ -192,6 +203,7 @@ void MainWindow::setupActions() {
     layout->addWidget(forwardButton);
     layout->addWidget(fileGroup);
     layout->addWidget(navGroup);
+    layout->addWidget(viewGroup);
 
     // Stretch before address bar
     layout->addStretch();
@@ -257,6 +269,20 @@ void MainWindow::setupActions() {
         QString dir = pathEdit_->text();
         navigateTo(dir);
     });
+
+    connect(viewGroup, &RibbonGroup::actionTriggered, this,
+            [this](const QString& name){
+                if (name == "PreviewPane") {
+                    if (!previewVisible_) {
+                        preview_->show();
+                        previewVisible_ = true;
+                    } else {
+                        preview_->hide();
+                        previewVisible_ = false;
+                    }
+                }
+            });
+
 }
 
 void MainWindow::openSelected() {
@@ -496,13 +522,10 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
             );
     }
 
-    // --- 1. Update RibbonGroup Icons ---
-    // Use the determined tint color
     fileGroup->updateIcons(iconTint, iconSize);
     navGroup->updateIcons(iconTint, iconSize);
+    viewGroup->updateIcons(iconTint, iconSize);
 
-    // --- 2. Update Back/Forward Action Icons ---
-    // Use the custom tintSvgIcon function to re-tint the arrow SVGs
     backAction->setIcon(
         tintSvgIcon(":/icons/icons/arrow-left.svg", iconTint, iconSize)
         );
@@ -512,10 +535,8 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
 }
 
 void MainWindow::updateDarkModeToggleUI(bool darkMode, const QSize& iconSize) {
-    // Apply palette
     togglePalette(darkMode);
 
-    // Choose icon/text based on state
     QString iconPath = darkMode ? ":/icons/icons/white-balance-sunny.svg"
                                 : ":/icons/icons/moon-waning-crescent.svg";
     QString text     = darkMode ? "Light Mode" : "Dark Mode";
@@ -531,15 +552,13 @@ void MainWindow::updateAddressBar(const QString& dir) {
 void MainWindow::navigateTo(const QString& dir, bool addToHistory) {
     if (!QDir(dir).exists()) return;
 
-    fsModel_->setRootPath(dir);
     QModelIndex rootIdx = fsModel_->index(dir);
-    // tree_->setRootIndex(rootIdx);
     list_->setRootIndex(rootIdx);
+
     updateAddressBar(dir);
     statusBar()->showMessage("Navigated to " + dir);
 
     if (addToHistory) {
-        // Trim forward history if we navigated manually
         while (history_.size() - 1 > historyIndex_)
             history_.removeLast();
 
@@ -547,10 +566,13 @@ void MainWindow::navigateTo(const QString& dir, bool addToHistory) {
         historyIndex_ = history_.size() - 1;
     }
 
-    // Update button enabled states
+    updateNavButtons();
+}
+void MainWindow::updateNavButtons() {
     backAction->setEnabled(historyIndex_ > 0);
     forwardAction->setEnabled(historyIndex_ < history_.size() - 1);
 }
+
 MainWindow::~MainWindow()
 {
     delete ui;

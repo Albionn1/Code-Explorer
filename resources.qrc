@@ -16,5 +16,6 @@
         <file>icons/white-balance-sunny.svg</file>
         <file>icons/arrow-left.svg</file>
         <file>icons/arrow-right.svg</file>
+        <file>icons/dock-window.svg</file>
     </qresource>
 </RCC>
