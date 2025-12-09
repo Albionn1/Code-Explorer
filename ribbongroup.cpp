@@ -3,8 +3,8 @@
 #include <QPixmap>
 #include <QPainter>
 #include <QMap>
+#include <QEvent>
 
-// same tintSvgIcon helper as before
 static QIcon tintSvgIcon(const QString& resPath, const QColor& color, const QSize& size) {
     QSvgRenderer renderer(resPath);
     QPixmap base(size);
@@ -27,12 +27,36 @@ static QIcon tintSvgIcon(const QString& resPath, const QColor& color, const QSiz
 
 RibbonGroup::RibbonGroup(const QString& groupName,
                          const QVector<QPair<QString, QString>>& actions,
-                         QWidget* parent)
-    : QWidget(parent), actionDefs_(actions)
+                         QWidget* parent,
+                         bool startCollapsed)
+    : QWidget(parent), actionDefs_(actions), collapsed_(startCollapsed)
 {
     auto* vbox = new QVBoxLayout(this);
-    auto* hbox = new QHBoxLayout;
 
+    // --- Header row ---
+    titleLabel_ = new QLabel(groupName, this);
+    titleLabel_->setAlignment(Qt::AlignCenter);
+    titleLabel_->setStyleSheet(
+        "QLabel { font-weight:bold; color:#444; padding:6px; background:#f5f5f5; border-radius:4px; }"
+        "QLabel:hover { background:#e6f0fa; color:#0078d7; cursor:pointer; }"
+        );
+
+    collapseButton_ = new QToolButton(this);
+    collapseButton_->setArrowType(startCollapsed ? Qt::RightArrow : Qt::DownArrow);
+    collapseButton_->setAutoRaise(true);
+    collapseButton_->setStyleSheet(
+        "QToolButton { border:none; background:transparent; padding:4px; }"
+        "QToolButton:hover { background:#e6f0fa; border-radius:4px; }"
+        );
+
+    auto* headerLayout = new QHBoxLayout;
+    headerLayout->addWidget(titleLabel_);
+    headerLayout->addWidget(collapseButton_);
+    vbox->addLayout(headerLayout);
+
+    // --- Actions container ---
+    actionsWidget_ = new QWidget(this);
+    auto* hbox = new QHBoxLayout(actionsWidget_);
     for (const auto& act : actions) {
         auto* btn = new QToolButton;
         btn->setText(act.first);
@@ -40,22 +64,24 @@ RibbonGroup::RibbonGroup(const QString& groupName,
         btn->setAutoRaise(true);
         btn->setStyleSheet("QToolButton { border:none; background:transparent; }");
 
-        buttons_.append(btn);              // ordered list
-        buttonMap_[act.first] = btn;       // lookup by name
-
+        buttons_.append(btn);
+        buttonMap_[act.first] = btn;
         hbox->addWidget(btn);
 
         connect(btn, &QToolButton::clicked, this, [this, act] {
             emit actionTriggered(act.first);
         });
     }
+    vbox->addWidget(actionsWidget_);
 
-    vbox->addLayout(hbox);
+    // --- Collapse toggle connections ---
+    connect(collapseButton_, &QToolButton::clicked, this, [this](){
+        setCollapsed(!collapsed_);
+    });
+    titleLabel_->installEventFilter(this);
 
-    auto* lbl = new QLabel(groupName);
-    lbl->setAlignment(Qt::AlignCenter);
-    lbl->setStyleSheet("QLabel { font-weight:bold; color:gray; }");
-    vbox->addWidget(lbl);
+    // Apply initial state
+    setCollapsed(startCollapsed);
 }
 
 void RibbonGroup::updateIcons(const QColor& color, const QSize& size) {
@@ -83,4 +109,44 @@ void RibbonGroup::updateSingleIcon(const QString& actionName,
         }
     }
 
+}
+
+void RibbonGroup::setCollapsed(bool collapsed, bool darkMode) {
+    collapsed_ = collapsed;
+    actionsWidget_->setVisible(!collapsed_);
+    collapseButton_->setArrowType(collapsed_ ? Qt::RightArrow : Qt::DownArrow);
+
+    if (darkMode) {
+        if (collapsed_) {
+            titleLabel_->setStyleSheet(
+                "QLabel { font-weight:bold; color:#ccc; padding:6px; background:#2b2b2b; border-radius:4px; }"
+                "QLabel:hover { background:#3a3a3a; color:#4da3ff; cursor:pointer; }"
+                );
+        } else {
+            titleLabel_->setStyleSheet(
+                "QLabel { font-weight:bold; color:#4da3ff; padding:6px; background:#1e1e1e; border-radius:4px; }"
+                "QLabel:hover { background:#333333; cursor:pointer; }"
+                );
+        }
+    } else {
+        if (collapsed_) {
+            titleLabel_->setStyleSheet(
+                "QLabel { font-weight:bold; color:#444; padding:6px; background:#f5f5f5; border-radius:4px; }"
+                "QLabel:hover { background:#e6f0fa; color:#0078d7; cursor:pointer; }"
+                );
+        } else {
+            titleLabel_->setStyleSheet(
+                "QLabel { font-weight:bold; color:#0078d7; padding:6px; background:#dceeff; border-radius:4px; }"
+                "QLabel:hover { background:#cce4ff; cursor:pointer; }"
+                );
+        }
+    }
+}
+
+bool RibbonGroup::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == titleLabel_ && event->type() == QEvent::MouseButtonRelease) {
+        setCollapsed(!collapsed_);
+        return true;
+    }
+    return QWidget::eventFilter(obj, event);
 }

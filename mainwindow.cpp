@@ -158,13 +158,13 @@ void MainWindow::setupActions() {
         {"List",        ":/icons/icons/view-list.svg"}
     };
 
-    fileGroup = new RibbonGroup("File Actions", fileActions, this);
+    fileGroup = new RibbonGroup("File Actions", fileActions, this, false);
     fileGroup->updateIcons(brandColor, iconSize_);
 
-    navGroup = new RibbonGroup("Navigation", navActions, this);
+    navGroup = new RibbonGroup("Navigation", navActions, this, false);
     navGroup->updateIcons(brandColor, iconSize_);
 
-    viewGroup = new RibbonGroup("View", viewActions, this);
+    viewGroup = new RibbonGroup("View", viewActions, this, true);
     viewGroup->updateIcons(brandColor, iconSize_);
 
     // --- Back / Forward actions ---

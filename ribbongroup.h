@@ -10,7 +10,8 @@ class RibbonGroup : public QWidget {
 public:
     RibbonGroup(const QString& groupName,
                 const QVector<QPair<QString, QString>>& actions,
-                QWidget* parent = nullptr);
+                QWidget* parent = nullptr,
+                bool startCollapsed = false);
 
     void updateIcons(const QColor& color, const QSize& size);
 
@@ -27,6 +28,10 @@ public:
         }
         return nullptr;
     }
+    void setCollapsed(bool collapsed, bool darkMode = false);
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 signals:
     void actionTriggered(const QString& name);
@@ -36,5 +41,12 @@ private:
     QVector<QPair<QString, QString>> actionDefs_; // action name + icon path
     QMap<QString, QToolButton*> buttonMap_;       // lookup by action name
     QList<QAction*> actions_;
+
+    QLabel* titleLabel_;
+    QToolButton* collapseButton_;
+    QWidget* actionsWidget_;   // container for all buttons
+    QVBoxLayout* mainLayout_;
+
+    bool collapsed_ = true;
 
 };
