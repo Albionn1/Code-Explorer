@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QPropertyAnimation>
 
 class RibbonGroup : public QWidget {
     Q_OBJECT
@@ -47,6 +48,7 @@ private:
     QToolButton* collapseButton_;
     QWidget* actionsWidget_;   // container for all buttons
     QVBoxLayout* mainLayout_;
+    QPropertyAnimation* anim_;
 
     bool collapsed_ = true;
     bool darkMode_ = false;

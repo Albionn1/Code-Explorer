@@ -80,6 +80,11 @@ RibbonGroup::RibbonGroup(const QString& groupName,
     });
     titleLabel_->installEventFilter(this);
 
+    anim_ = new QPropertyAnimation(actionsWidget_, "maximumHeight", this);
+    anim_->setDuration(200);
+    anim_->setEasingCurve(QEasingCurve::InOutQuad);
+
+
     // Apply initial state
     setCollapsed(startCollapsed);
 }
@@ -113,30 +118,57 @@ void RibbonGroup::updateSingleIcon(const QString& actionName,
 
 void RibbonGroup::setCollapsed(bool collapsed) {
     collapsed_ = collapsed;
-    actionsWidget_->setVisible(!collapsed_);
     collapseButton_->setArrowType(collapsed_ ? Qt::RightArrow : Qt::DownArrow);
+
+    if (darkMode_) {
+        collapseButton_->setStyleSheet(
+            "QToolButton { border:none; background:transparent; color:#ddd; }"
+            "QToolButton:hover { background:#3a3a3a; color:#f0f0f0; }"
+            );
+    } else {
+        collapseButton_->setStyleSheet(
+            "QToolButton { border:none; background:transparent; color:#333; }"
+            "QToolButton:hover { background:#d9d9d9; color:#000; }"
+            );
+    }
+
+    int startHeight = actionsWidget_->maximumHeight();
+    int endHeight   = collapsed_ ? 0 : actionsWidget_->sizeHint().height();
+
+    anim_->stop();
+    anim_->setStartValue(startHeight);
+    anim_->setEndValue(endHeight);
+    anim_->start();
+
+    collapseButton_->setAutoRaise(true);
+
 
     if (darkMode_) {
         if (collapsed_) {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#dcdcdc; padding:6px; background:#2e2e2e; border-radius:4px; }"
-                "QLabel:hover { background:#3a3a3a; color:#f5f5f5; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#f0f0f0; padding:6px; "
+                "background:#252525; border-bottom:1px solid #555; }"
+                "QLabel:hover { background:#383838; cursor:pointer; }"
                 );
+
         } else {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#f0f0f0; padding:6px; background:#252525; border-radius:4px; }"
-                "QLabel:hover { background:#383838; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#dcdcdc; padding:6px; "
+                "background:#2e2e2e; border-bottom:1px solid #444; }"
+                "QLabel:hover { background:#3a3a3a; color:#f0f0f0; cursor:pointer; }"
                 );
         }
     } else {
         if (collapsed_) {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#111; padding:6px; background:#f0f0f0; border-radius:4px; }"
+                "QLabel { font-weight:bold; color:#111; padding:6px; "
+                "background:#f0f0f0; border-bottom:1px solid #999; }"
                 "QLabel:hover { background:#d9d9d9; color:#000; cursor:pointer; }"
                 );
         } else {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#000; padding:6px; background:#e0e0e0; border-radius:4px; }"
+                "QLabel { font-weight:bold; color:#000; padding:6px; "
+                "background:#e0e0e0; border-bottom:1px solid #aaa; }"
                 "QLabel:hover { background:#c0c0c0; cursor:pointer; }"
                 );
         }
@@ -144,7 +176,7 @@ void RibbonGroup::setCollapsed(bool collapsed) {
 }
 void RibbonGroup::setDarkMode(bool enabled) {
     darkMode_ = enabled;
-    setCollapsed(collapsed_); // reapply styles with current theme
+    setCollapsed(collapsed_);
 }
 
 bool RibbonGroup::eventFilter(QObject* obj, QEvent* event) {
