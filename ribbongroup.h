@@ -28,7 +28,8 @@ public:
         }
         return nullptr;
     }
-    void setCollapsed(bool collapsed, bool darkMode = false);
+    void setCollapsed(bool collapsed);
+    void setDarkMode(bool enabled);
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
@@ -48,5 +49,6 @@ private:
     QVBoxLayout* mainLayout_;
 
     bool collapsed_ = true;
+    bool darkMode_ = false;
 
 };

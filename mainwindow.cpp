@@ -551,6 +551,10 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
     navGroup->updateIcons(iconTint, iconSize);
     viewGroup->updateIcons(iconTint, iconSize);
 
+    fileGroup->setDarkMode(darkMode);
+    navGroup->setDarkMode(darkMode);
+    viewGroup->setDarkMode(darkMode);
+
     // backAction->setIcon(
     //     tintSvgIcon(":/icons/icons/arrow-left.svg", iconTint, iconSize)
     //     );

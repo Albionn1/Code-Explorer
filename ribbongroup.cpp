@@ -111,36 +111,40 @@ void RibbonGroup::updateSingleIcon(const QString& actionName,
 
 }
 
-void RibbonGroup::setCollapsed(bool collapsed, bool darkMode) {
+void RibbonGroup::setCollapsed(bool collapsed) {
     collapsed_ = collapsed;
     actionsWidget_->setVisible(!collapsed_);
     collapseButton_->setArrowType(collapsed_ ? Qt::RightArrow : Qt::DownArrow);
 
-    if (darkMode) {
+    if (darkMode_) {
         if (collapsed_) {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#ccc; padding:6px; background:#2b2b2b; border-radius:4px; }"
-                "QLabel:hover { background:#3a3a3a; color:#4da3ff; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#dcdcdc; padding:6px; background:#2e2e2e; border-radius:4px; }"
+                "QLabel:hover { background:#3a3a3a; color:#f5f5f5; cursor:pointer; }"
                 );
         } else {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#4da3ff; padding:6px; background:#1e1e1e; border-radius:4px; }"
-                "QLabel:hover { background:#333333; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#f0f0f0; padding:6px; background:#252525; border-radius:4px; }"
+                "QLabel:hover { background:#383838; cursor:pointer; }"
                 );
         }
     } else {
         if (collapsed_) {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#444; padding:6px; background:#f5f5f5; border-radius:4px; }"
-                "QLabel:hover { background:#e6f0fa; color:#0078d7; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#111; padding:6px; background:#f0f0f0; border-radius:4px; }"
+                "QLabel:hover { background:#d9d9d9; color:#000; cursor:pointer; }"
                 );
         } else {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#0078d7; padding:6px; background:#dceeff; border-radius:4px; }"
-                "QLabel:hover { background:#cce4ff; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#000; padding:6px; background:#e0e0e0; border-radius:4px; }"
+                "QLabel:hover { background:#c0c0c0; cursor:pointer; }"
                 );
         }
     }
+}
+void RibbonGroup::setDarkMode(bool enabled) {
+    darkMode_ = enabled;
+    setCollapsed(collapsed_); // reapply styles with current theme
 }
 
 bool RibbonGroup::eventFilter(QObject* obj, QEvent* event) {
