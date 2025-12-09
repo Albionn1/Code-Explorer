@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
 #include "folderdialog.h"
 #include "iconfactory.h"
 #include "iconprovider.h"
@@ -28,6 +27,7 @@
 #include <QGraphicsColorizeEffect>
 #include <QPropertyAnimation>
 #include <QStyleFactory>
+#include <qapplication.h>
 #include <qheaderview.h>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -97,10 +97,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Main split: tree + rightSplit
     mainSplit = new QSplitter(Qt::Horizontal, this);
     mainSplit->addWidget(tree_);
-    mainSplit->addWidget(rightSplit);
-    mainSplit->setStretchFactor(0, 0);
-    mainSplit->setStretchFactor(1, 1);
+    mainSplit->addWidget(list_);
+    mainSplit->addWidget(preview_);
+    mainSplit->setStretchFactor(0, 0); // tree
+    mainSplit->setStretchFactor(1, 1); // list
+    mainSplit->setStretchFactor(2, 0); // preview
 
+    preview_->hide(); // start hidden
 
     // --- Central layout ---
     auto* centralLayout = new QVBoxLayout;
@@ -148,7 +151,11 @@ void MainWindow::setupActions() {
     };
 
     QVector<QPair<QString, QString>> viewActions = {
-        {"Preview Pane", ":/icons/icons/dock-window.svg"}
+        {"Preview Pane", ":/icons/icons/dock-window.svg"},
+        {"Small Icons",  ":/icons/icons/view-small.svg"},
+        {"Large Icons",  ":/icons/icons/view-large.svg"},
+        {"Details",     ":/icons/icons/view-details.svg"},
+        {"List",        ":/icons/icons/view-list.svg"}
     };
 
     fileGroup = new RibbonGroup("File Actions", fileActions, this);
@@ -286,6 +293,25 @@ void MainWindow::setupActions() {
                         previewVisible_ = false;
                     }
                 }
+                else if (name == "Small Icons") {
+                    list_->setIconSize(QSize(16,16));
+                }
+                else if (name == "Large Icons") {
+                    list_->setIconSize(QSize(64,64));
+                }
+                else if (name == "Details") {
+                    // For details mode, show all columns
+                    for (int col = 0; col < fsModel_->columnCount(); ++col)
+                        list_->setColumnHidden(col, false);
+                    list_->setRootIsDecorated(true);
+                }
+                else if (name == "List") {
+                    // For list mode, hide extra columns
+                    for (int col = 1; col < fsModel_->columnCount(); ++col)
+                        list_->setColumnHidden(col, true);
+                    list_->setRootIsDecorated(false);
+                }
+
             });
 
 }

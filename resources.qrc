@@ -17,5 +17,9 @@
         <file>icons/arrow-left.svg</file>
         <file>icons/arrow-right.svg</file>
         <file>icons/dock-window.svg</file>
+        <file>icons/view-details.svg</file>
+        <file>icons/view-large.svg</file>
+        <file>icons/view-list.svg</file>
+        <file>icons/view-small.svg</file>
     </qresource>
 </RCC>
