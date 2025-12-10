@@ -342,12 +342,6 @@ void MainWindow::setupActions() {
                 }
 
             });
-
-    QAction* toggleThemeAction = new QAction("Toggle Dark Mode", this);
-    toggleThemeAction->setCheckable(true);
-    connect(toggleThemeAction, &QAction::toggled, this, &MainWindow::applyToolbarTheme);
-    menuBar()->addAction(toggleThemeAction);
-
 }
 
 void MainWindow::openSelected() {

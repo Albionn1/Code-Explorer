@@ -8,6 +8,13 @@ CodeViewerWindow::CodeViewerWindow(QWidget* parent)
     tabWidget_->setTabsClosable(true);
     tabWidget_->setMovable(true);
 
+    tabWidget_->setStyleSheet(R"(
+        QTabBar::close-button {
+            image: url(:/icons/icons/close.svg);
+            subcontrol-position: right;
+        }
+    )");
+
     connect(tabWidget_, &QTabWidget::tabCloseRequested, this, [this](int index) {
         QWidget* tab = tabWidget_->widget(index);
         tabWidget_->removeTab(index);

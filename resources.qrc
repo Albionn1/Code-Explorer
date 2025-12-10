@@ -21,5 +21,6 @@
         <file>icons/view-large.svg</file>
         <file>icons/view-list.svg</file>
         <file>icons/view-small.svg</file>
+        <file>icons/close.svg</file>
     </qresource>
 </RCC>
