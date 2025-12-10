@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "codeviewerwindow.h"
 #include "ribbongroup.h"
 #include <QMainWindow>
 #include <QFileSystemModel>
@@ -58,6 +59,8 @@ private:
     QAction* backAction = nullptr;
     QAction* forwardAction = nullptr;
 
+    QVector<CodeViewerWindow*> openCodeViewerWindows_;
+
     bool previewVisible_ = false;
 
     void navigateTo(const QString& dir, bool addToHistory = true);
@@ -74,5 +77,7 @@ private:
     void updateDarkModeToggleUI(bool darkMode, const QSize& iconSize);
     void updateAddressBar(const QString& dir);
     void updateNavButtons();
+    void onContextMenuRequested(const QPoint& pos);
+
 };
 #endif // MAINWINDOW_H

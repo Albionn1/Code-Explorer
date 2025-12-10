@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "codeviewerwindow.h"
 #include "folderdialog.h"
 #include "iconfactory.h"
 #include "iconprovider.h"
@@ -39,7 +40,6 @@ MainWindow::MainWindow(QWidget *parent)
     fsModel_->setRootPath(QDir::homePath());
     fsModel_->setReadOnly(false);
 
-    // Icon provider (optional)
     auto* provider = new IconProvider();
     fsModel_->setIconProvider(provider);
 
@@ -80,6 +80,35 @@ MainWindow::MainWindow(QWidget *parent)
     for (int col = 0; col < fsModel_->columnCount(); ++col) {
         list_->setColumnHidden(col, false);
     }
+
+    list_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(list_, &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+        QModelIndex index = list_->indexAt(pos);
+        if (!index.isValid()) return;
+
+        QString path = fsModel_->filePath(index);
+
+        QMenu contextMenu;
+        QAction* openCodeViewer = contextMenu.addAction("Open in CodeViewer");
+
+        connect(openCodeViewer, &QAction::triggered, this, [this, path]() {
+            if (path.endsWith(".cpp", Qt::CaseInsensitive) ||
+                path.endsWith(".h", Qt::CaseInsensitive)) {
+
+                // Reuse one CodeViewerWindow, or create if none exists
+                static CodeViewerWindow* editorWin = nullptr;
+                if (!editorWin) {
+                    editorWin = new CodeViewerWindow();
+                    editorWin->show();
+                }
+                editorWin->openFile(path);
+            }
+        });
+
+
+        contextMenu.exec(list_->viewport()->mapToGlobal(pos));
+    });
+
 
 
     // --- Preview ---
@@ -313,6 +342,11 @@ void MainWindow::setupActions() {
                 }
 
             });
+
+    QAction* toggleThemeAction = new QAction("Toggle Dark Mode", this);
+    toggleThemeAction->setCheckable(true);
+    connect(toggleThemeAction, &QAction::toggled, this, &MainWindow::applyToolbarTheme);
+    menuBar()->addAction(toggleThemeAction);
 
 }
 
@@ -555,6 +589,10 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
     navGroup->setDarkMode(darkMode);
     viewGroup->setDarkMode(darkMode);
 
+    for (CodeViewerWindow* win : openCodeViewerWindows_) {
+        win->setDarkMode(darkMode);
+    }
+
     // backAction->setIcon(
     //     tintSvgIcon(":/icons/icons/arrow-left.svg", iconTint, iconSize)
     //     );
@@ -602,6 +640,33 @@ void MainWindow::updateNavButtons() {
     QAction* forward = navGroup->findAction("Forward");
     if (back) back->setEnabled(historyIndex_ > 0);
     if (forward) forward->setEnabled(historyIndex_ < history_.size() - 1);
+}
+
+void MainWindow::onContextMenuRequested(const QPoint& pos) {
+    QModelIndex index = tree_->indexAt(pos);
+    if (!index.isValid()) return;
+
+    QString path = fsModel_->filePath(index);
+
+    QMenu contextMenu;
+    QAction* openCodeViewer = contextMenu.addAction("Open in CodeViewer");
+
+    connect(openCodeViewer, &QAction::triggered, this, [this, path]() {
+        if (path.endsWith(".cpp", Qt::CaseInsensitive) ||
+            path.endsWith(".h", Qt::CaseInsensitive)) {
+
+            CodeViewerWindow* win = new CodeViewerWindow();
+            win->openFile(path);
+            win->show();
+
+            openCodeViewerWindows_.append(win);
+
+            connect(win, &QObject::destroyed, this, [this, win]() {
+                openCodeViewerWindows_.removeOne(win);
+            });
+        }
+    });
+    contextMenu.exec(tree_->viewport()->mapToGlobal(pos));
 }
 
 MainWindow::~MainWindow()

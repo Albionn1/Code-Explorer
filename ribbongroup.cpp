@@ -84,7 +84,6 @@ RibbonGroup::RibbonGroup(const QString& groupName,
     anim_->setDuration(200);
     anim_->setEasingCurve(QEasingCurve::InOutQuad);
 
-
     // Apply initial state
     setCollapsed(startCollapsed);
 }
@@ -142,20 +141,28 @@ void RibbonGroup::setCollapsed(bool collapsed) {
 
     collapseButton_->setAutoRaise(true);
 
+    if (collapsed_) {
+        // Shrink group to fixed width
+        this->setMaximumWidth(120);
+        this->setMinimumWidth(50);
+    } else {
+        // Restore flexible width
+        this->setMaximumWidth(QWIDGETSIZE_MAX);
+        this->setMinimumWidth(80);
+    }
 
     if (darkMode_) {
         if (collapsed_) {
             titleLabel_->setStyleSheet(
                 "QLabel { font-weight:bold; color:#f0f0f0; padding:6px; "
-                "background:#252525; border-bottom:1px solid #555; }"
-                "QLabel:hover { background:#383838; cursor:pointer; }"
+                "background:#3a3a3a; border-bottom:1px solid #444; }"
+                "QLabel:hover { background:#4a4a4a; color:#ffffff; cursor:pointer; }"
                 );
-
         } else {
             titleLabel_->setStyleSheet(
-                "QLabel { font-weight:bold; color:#dcdcdc; padding:6px; "
-                "background:#2e2e2e; border-bottom:1px solid #444; }"
-                "QLabel:hover { background:#3a3a3a; color:#f0f0f0; cursor:pointer; }"
+                "QLabel { font-weight:bold; color:#f5f5f5; padding:6px; "
+                "background:#383838; border-bottom:1px solid #555; }"
+                "QLabel:hover { background:#4c4c4c; color:#ffffff; cursor:pointer; }"
                 );
         }
     } else {

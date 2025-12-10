@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find Qt6 with Widgets + Svg modules
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg)
 
+# Project sources
 set(PROJECT_SOURCES
     main.cpp
     mainwindow.cpp
@@ -19,20 +20,28 @@ set(PROJECT_SOURCES
     mainwindow.ui
     iconprovider.cpp
     iconprovider.h
+    iconfactory.cpp
+    iconfactory.h
+    ribbongroup.cpp
+    ribbongroup.h
+    folderdialog.cpp
+    folderdialog.h
     resources.qrc
 )
 
+# Define executable
 qt_add_executable(FileExplorer
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
-    resources.qrc
-
-    iconfactory.h iconfactory.cpp
-    ribbongroup.h ribbongroup.cpp
-    folderdialog.h folderdialog.cpp
+    codehighlighter.h codehighlighter.cpp
+    codeviewer.h codeviewer.cpp
+    codeviewerwindow.h codeviewerwindow.cpp
 )
 
-# Link against Qt6 Widgets and Svg
-target_link_libraries(FileExplorer PRIVATE Qt6::Widgets Qt6::Svg)
+# Link against Qt6 and QScintilla
+target_link_libraries(FileExplorer PRIVATE
+    Qt6::Widgets
+    Qt6::Svg
+)
 
 qt_finalize_executable(FileExplorer)
