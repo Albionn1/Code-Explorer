@@ -36,6 +36,8 @@ qt_add_executable(FileExplorer
     codehighlighter.h codehighlighter.cpp
     codeviewer.h codeviewer.cpp
     codeviewerwindow.h codeviewerwindow.cpp
+    linenumberarea.h linenumberarea.cpp
+    codeeditor.h codeeditor.cpp
 )
 
 # Link against Qt6 and QScintilla

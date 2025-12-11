@@ -60,6 +60,7 @@ private:
     QAction* forwardAction = nullptr;
 
     QVector<CodeViewerWindow*> openCodeViewerWindows_;
+    CodeViewerWindow* codeViewerWindow_ = nullptr;
 
     bool previewVisible_ = false;
 

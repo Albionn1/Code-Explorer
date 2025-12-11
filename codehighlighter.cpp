@@ -2,7 +2,8 @@
 
 codehighlighter::codehighlighter(QTextDocument* parent, bool darkMode)
     : QSyntaxHighlighter(parent) {
-    setupRules(darkMode);
+    // setupRules(darkMode);
+    setDarkMode(darkMode);
 }
 
 void codehighlighter::setDarkMode(bool enabled) {

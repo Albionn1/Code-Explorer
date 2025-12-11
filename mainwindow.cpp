@@ -82,34 +82,33 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     list_->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(list_, &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
-        QModelIndex index = list_->indexAt(pos);
-        if (!index.isValid()) return;
+    connect(list_, &QWidget::customContextMenuRequested,
+            this, &MainWindow::onContextMenuRequested);
 
-        QString path = fsModel_->filePath(index);
+    // connect(list_, &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+    //     QModelIndex index = list_->indexAt(pos);
+    //     if (!index.isValid()) return;
 
-        QMenu contextMenu;
-        QAction* openCodeViewer = contextMenu.addAction("Open in CodeViewer");
+    //     QString path = fsModel_->filePath(index);
 
-        connect(openCodeViewer, &QAction::triggered, this, [this, path]() {
-            if (path.endsWith(".cpp", Qt::CaseInsensitive) ||
-                path.endsWith(".h", Qt::CaseInsensitive)) {
+    //     QMenu contextMenu;
+    //     QAction* openCodeViewer = contextMenu.addAction("Open in CodeViewer");
 
-                // Reuse one CodeViewerWindow, or create if none exists
-                static CodeViewerWindow* editorWin = nullptr;
-                if (!editorWin) {
-                    editorWin = new CodeViewerWindow();
-                    editorWin->show();
-                }
-                editorWin->openFile(path);
-            }
-        });
+    //     connect(openCodeViewer, &QAction::triggered, this, [this, path]() {
+    //         if (path.endsWith(".cpp", Qt::CaseInsensitive) ||
+    //             path.endsWith(".h", Qt::CaseInsensitive)) {
 
-
-        contextMenu.exec(list_->viewport()->mapToGlobal(pos));
-    });
-
-
+    //             // Reuse one CodeViewerWindow, or create if none exists
+    //             static CodeViewerWindow* editorWin = nullptr;
+    //             if (!editorWin) {
+    //                 editorWin = new CodeViewerWindow();
+    //                 editorWin->show();
+    //             }
+    //             editorWin->openFile(path);
+    //         }
+    //     });
+    //     contextMenu.exec(list_->viewport()->mapToGlobal(pos));
+    // });
 
     // --- Preview ---
     preview_ = new QTextEdit(this);
@@ -583,8 +582,8 @@ void MainWindow::applyToolbarTheme(bool darkMode) {
     navGroup->setDarkMode(darkMode);
     viewGroup->setDarkMode(darkMode);
 
-    for (CodeViewerWindow* win : openCodeViewerWindows_) {
-        win->setDarkMode(darkMode);
+    if (codeViewerWindow_) {
+        codeViewerWindow_->setDarkMode(darkMode);
     }
 
     // backAction->setIcon(
@@ -636,8 +635,9 @@ void MainWindow::updateNavButtons() {
     if (forward) forward->setEnabled(historyIndex_ < history_.size() - 1);
 }
 
-void MainWindow::onContextMenuRequested(const QPoint& pos) {
-    QModelIndex index = tree_->indexAt(pos);
+void MainWindow::onContextMenuRequested(const QPoint& pos)
+{
+    QModelIndex index = list_->indexAt(pos);
     if (!index.isValid()) return;
 
     QString path = fsModel_->filePath(index);
@@ -646,21 +646,25 @@ void MainWindow::onContextMenuRequested(const QPoint& pos) {
     QAction* openCodeViewer = contextMenu.addAction("Open in CodeViewer");
 
     connect(openCodeViewer, &QAction::triggered, this, [this, path]() {
+
         if (path.endsWith(".cpp", Qt::CaseInsensitive) ||
             path.endsWith(".h", Qt::CaseInsensitive)) {
 
-            CodeViewerWindow* win = new CodeViewerWindow();
-            win->openFile(path);
-            win->show();
+            if (!codeViewerWindow_) {
+                codeViewerWindow_ = new CodeViewerWindow(this);
 
-            openCodeViewerWindows_.append(win);
+                connect(codeViewerWindow_, &QObject::destroyed, this, [this]() {
+                    codeViewerWindow_ = nullptr;
+                });
+            }
 
-            connect(win, &QObject::destroyed, this, [this, win]() {
-                openCodeViewerWindows_.removeOne(win);
-            });
+            codeViewerWindow_->openFile(path);
+            codeViewerWindow_->show();
+            codeViewerWindow_->raise();
+            codeViewerWindow_->activateWindow();
         }
     });
-    contextMenu.exec(tree_->viewport()->mapToGlobal(pos));
+    contextMenu.exec(list_->mapToGlobal(pos));
 }
 
 MainWindow::~MainWindow()
