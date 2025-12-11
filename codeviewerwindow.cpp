@@ -1,7 +1,10 @@
 #include "codeviewerwindow.h"
 #include <QFileInfo>
 #include <QTabBar>
-#include <qpushbutton.h>
+#include <QPushButton>
+#include <QToolButton>
+#include <qboxlayout.h>
+#include <qtoolbar.h>
 
 CodeViewerWindow::CodeViewerWindow(QWidget* parent)
     : QMainWindow(parent),
@@ -10,23 +13,37 @@ CodeViewerWindow::CodeViewerWindow(QWidget* parent)
     tabWidget_->setTabsClosable(true);
     tabWidget_->setMovable(true);
 
-    // ✅ Use palette instead of stylesheet
-    QPalette pal = tabWidget_->palette();
-    pal.setColor(QPalette::Window, QColor("#eaeaea"));   // tab background
-    pal.setColor(QPalette::Button, QColor("#eaeaea"));   // tab button area
-    pal.setColor(QPalette::Text, Qt::black);             // tab text
-    tabWidget_->setPalette(pal);
-    tabWidget_->setAutoFillBackground(true);
+    QToolBar* internalBar = new QToolBar(this);
+    internalBar->setIconSize(QSize(16,16));
+    internalBar->setMovable(false);
+    internalBar->setFloatable(false);
+    internalBar->setStyleSheet("QToolBar { border: 0; padding: 2px; }");
 
-    // Close button still needs an icon
-    // tabWidget_->tabBar()->setTabButton(0, QTabBar::RightSide,
-    //                                    new QPushButton(QIcon(":/icons/icons/close.svg"), "", tabWidget_));
-    tabWidget_->tabBar()->setStyleSheet(
-        "QTabBar::close-button { "
-        "   image: url(:/icons/icons/close.svg); "
-        "   subcontrol-position: right; "
-        "} "
-        );
+    QToolButton* editToggle = new QToolButton(this);
+    editToggle->setText("Edit");
+    editToggle->setCheckable(true);
+    editToggle->setChecked(false);
+    editToggle->setToolTip("Toggle edit mode");
+
+    internalBar->addWidget(editToggle);
+
+    editToggle->setStyleSheet("QToolButton { background:#b0b0b0; color:black; }");
+
+    connect(editToggle, &QToolButton::toggled, this, [editToggle, this](bool checked) {
+        // Update button style
+        if (checked)
+            editToggle->setStyleSheet("QToolButton { background:#4CAF50; color:white; }");
+        else
+            editToggle->setStyleSheet("QToolButton { background:#b0b0b0; color:black; }");
+
+        // Apply to active viewer
+        int index = tabWidget_->currentIndex();
+        if (index >= 0) {
+            if (auto* viewer = qobject_cast<CodeViewer*>(tabWidget_->widget(index))) {
+                viewer->setReadOnly(!checked);
+            }
+        }
+    });
 
     connect(tabWidget_, &QTabWidget::tabCloseRequested, this, [this](int index) {
         QWidget* tab = tabWidget_->widget(index);
@@ -34,7 +51,17 @@ CodeViewerWindow::CodeViewerWindow(QWidget* parent)
         tab->deleteLater();
     });
 
-    setCentralWidget(tabWidget_);
+    QWidget* container = new QWidget(this);
+
+    QVBoxLayout* layout = new QVBoxLayout(container);
+    layout->setContentsMargins(0,0,0,0);
+    layout->setSpacing(0);
+
+    layout->addWidget(internalBar);   // toolbar first
+    layout->addWidget(tabWidget_);    // tabs below it
+
+    setCentralWidget(container);
+
     resize(900, 700);
 }
 

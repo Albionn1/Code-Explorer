@@ -35,12 +35,10 @@ void CodeViewer::loadFile(const QString& path)
 
 void CodeViewer::setDarkMode(bool enabled)
 {
-    // ✅ Update syntax highlighter
     if (highlighter_) {
         highlighter_->setDarkMode(enabled);
     }
 
-    // ✅ Apply palette consistent with MainWindow::togglePalette
     QPalette p = editor_->palette();
 
     if (enabled) {
@@ -60,4 +58,15 @@ void CodeViewer::setDarkMode(bool enabled)
 
     editor_->updateLineNumberAreaWidth(0);
     editor_->viewport()->update();
+}
+
+void CodeViewer::setReadOnly(bool enabled)
+{
+    editor_->setReadOnly(enabled);
+
+    if (enabled) {
+        editor_->setCursorWidth(0);   // hide caret
+    } else {
+        editor_->setCursorWidth(2);   // normal caret
+    }
 }

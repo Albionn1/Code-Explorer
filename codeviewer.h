@@ -17,6 +17,8 @@ public:
     void onTabClosed(int index);
     int lineNumberAreaWidth() const;
     void lineNumberAreaPaintEvent(QPaintEvent* event);
+    void setReadOnly(bool enabled);
+
 private:
     CodeEditor* editor_;
     codehighlighter* highlighter_;
