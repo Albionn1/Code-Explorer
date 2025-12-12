@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QVBoxLayout>
+#include <QFileDialog>
+#include <qtoolbutton.h>
 
 CodeViewer::CodeViewer(QWidget* parent)
     : QWidget(parent),
@@ -20,6 +22,37 @@ CodeViewer::CodeViewer(QWidget* parent)
     layout->setContentsMargins(0,0,0,0);
     layout->addWidget(editor_);
     setLayout(layout);
+
+    // --- FIND BAR ---
+    findbar_ = new QWidget(this);
+    findbar_->setVisible(false);
+
+    QHBoxLayout* findLayout = new QHBoxLayout(findbar_);
+    findLayout->setContentsMargins(4, 4, 4, 4);
+
+    findField_ = new QLineEdit(findbar_);
+    findField_->setPlaceholderText("Find...");
+    findLayout->addWidget(findField_);
+
+    QToolButton* nextBtn = new QToolButton(findbar_);
+    nextBtn->setText("Next");
+    findLayout->addWidget(nextBtn);
+
+    QToolButton* prevBtn = new QToolButton(findbar_);
+    prevBtn->setText("Prev");
+    findLayout->addWidget(prevBtn);
+
+    QToolButton* closeBtn = new QToolButton(findbar_);
+    closeBtn->setText("X");
+    findLayout->addWidget(closeBtn);
+
+    // Connect buttons
+    connect(nextBtn, &QToolButton::clicked, this, &CodeViewer::findNext);
+    connect(prevBtn, &QToolButton::clicked, this, &CodeViewer::findPrevious);
+    connect(closeBtn, &QToolButton::clicked, this, &CodeViewer::hideFindBar);
+
+    // Add find bar to layout ABOVE the editor
+    layout->insertWidget(0, findbar_);
 
     setDarkMode(false);
 }
@@ -69,4 +102,57 @@ void CodeViewer::setReadOnly(bool enabled)
     } else {
         editor_->setCursorWidth(2);   // normal caret
     }
+}
+
+bool CodeViewer::save()
+{
+    if (filePath_.isEmpty())
+        return false; // should call Save As instead
+
+    QFile file(filePath_);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return false;
+
+    QTextStream out(&file);
+    out << editor_->toPlainText();
+    return true;
+}
+
+bool CodeViewer::saveAs(QWidget* parent)
+{
+    QString newPath = QFileDialog::getSaveFileName(parent, "Save As", filePath_);
+    if (newPath.isEmpty())
+        return false;
+
+    filePath_ = newPath;
+    return save();
+}
+
+void CodeViewer::showFindBar()
+{
+    findbar_->setVisible(true);
+    findField_->setFocus();
+    findField_->selectAll();
+}
+
+void CodeViewer::hideFindBar()
+{
+    findbar_->setVisible(false);
+    editor_->setFocus();
+}
+
+void CodeViewer::findNext()
+{
+    QString text = findField_->text();
+    if (text.isEmpty()) return;
+
+    editor_->find(text);
+}
+
+void CodeViewer::findPrevious()
+{
+    QString text = findField_->text();
+    if (text.isEmpty()) return;
+
+    editor_->find(text, QTextDocument::FindBackward);
 }
