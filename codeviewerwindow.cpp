@@ -121,6 +121,7 @@ CodeViewerWindow::CodeViewerWindow(QWidget* parent)
             viewer->showFindBar();
         }
     });
+
     QWidget* container = new QWidget(this);
 
     QVBoxLayout* layout = new QVBoxLayout(container);

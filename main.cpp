@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     w.show();
-    w.resize(1200, 800); // bigger, widescreen feel
+    w.resize(1500, 900); // bigger, widescreen feel
     w.setMinimumSize(1000, 700);
 
     return a.exec();

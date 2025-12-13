@@ -1,13 +1,15 @@
+#pragma once
 #ifndef CODEVIEWER_H
 #define CODEVIEWER_H
 
+#include "minimap.h"
 #include "codeeditor.h"
-#pragma once
 #include "linenumberarea.h"
 #include <QWidget>
 #include <QPlainTextEdit>
 #include "codehighlighter.h"
 #include <QLineEdit>
+#include <QLabel>
 
 class CodeViewer : public QWidget {
     Q_OBJECT
@@ -28,6 +30,8 @@ public:
     void hideFindBar();
     void findNext();
     void findPrevious();
+    void replaceOne();
+    void replaceAll();
 
 private:
     CodeEditor* editor_;
@@ -36,6 +40,13 @@ private:
     QString filePath_;
     QWidget* findbar_ = nullptr;
     QLineEdit* findField_ = nullptr;
+    bool regexEnabled_ = false;
+    bool caseSensitive_ = false;
+    void updateHighlights();
+    QLabel* matchCountLabel_ = nullptr;
+    QLineEdit* replaceField_ = nullptr;
+    QWidget* replaceBar_ = nullptr;
+    MiniMap* minimap_ = nullptr;
 
 };
 

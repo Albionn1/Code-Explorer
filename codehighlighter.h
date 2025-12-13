@@ -6,8 +6,15 @@
 #include <QRegularExpression>
 #include <QVector>
 
+struct MiniToken{
+    QString text;
+    QColor color;
+};
+
 class codehighlighter : public QSyntaxHighlighter{
     Q_OBJECT
+
+
 
 public:
     explicit codehighlighter(QTextDocument* parent = nullptr, bool darkMode = true);
@@ -34,6 +41,7 @@ private:
     QRegularExpression commentEndExpression;
     QTextCharFormat preprocessorFormat;
     QTextCharFormat parameterFormat;
+    QVector<MiniToken> highlightLine(const QString& line) const;
 
     void setupRules(bool darkMode);
 };

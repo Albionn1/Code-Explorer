@@ -139,3 +139,34 @@ void codehighlighter::highlightBlock(const QString& text) {
         startIndex = text.indexOf(commentStartExpression, startIndex + commentLength);
     }
 }
+
+// QVector<MiniToken> codehighlighter::highlightLine(const QString& line) const
+// {
+//     QVector<MiniToken> tokens;
+
+//     int i = 0;
+//     while (i < line.length())
+//     {
+//         // Example: keyword
+//         auto m = keywordRegex.match(line, i);
+//         if (m.hasMatch() && m.capturedStart() == i) {
+//             tokens.append({ m.captured(), keywordColor });
+//             i += m.capturedLength();
+//             continue;
+//         }
+
+//         // Example: string
+//         auto s = stringRegex.match(line, i);
+//         if (s.hasMatch() && s.capturedStart() == i) {
+//             tokens.append({ s.captured(), stringColor });
+//             i += s.capturedLength();
+//             continue;
+//         }
+
+//         // Default
+//         tokens.append({ QString(line[i]), defaultColor });
+//         i++;
+//     }
+
+//     return tokens;
+// }

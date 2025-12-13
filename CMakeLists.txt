@@ -38,6 +38,7 @@ qt_add_executable(FileExplorer
     codeviewerwindow.h codeviewerwindow.cpp
     linenumberarea.h linenumberarea.cpp
     codeeditor.h codeeditor.cpp
+    minimap.h minimap.cpp
 )
 
 # Link against Qt6 and QScintilla

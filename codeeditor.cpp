@@ -15,6 +15,7 @@ CodeEditor::CodeEditor(QWidget* parent)
             this, &CodeEditor::updateLineNumberArea);
 
     updateLineNumberAreaWidth(0);
+
 }
 
 int CodeEditor::lineNumberAreaWidth() const

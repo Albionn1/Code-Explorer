@@ -648,7 +648,8 @@ void MainWindow::onContextMenuRequested(const QPoint& pos)
     connect(openCodeViewer, &QAction::triggered, this, [this, path]() {
 
         if (path.endsWith(".cpp", Qt::CaseInsensitive) ||
-            path.endsWith(".h", Qt::CaseInsensitive)) {
+            path.endsWith(".h", Qt::CaseInsensitive) ||
+            path.endsWith(".txt", Qt::CaseInsensitive)) { // .txt for testing purposes only
 
             if (!codeViewerWindow_) {
                 codeViewerWindow_ = new CodeViewerWindow(this);
