@@ -20,6 +20,8 @@ public:
     explicit codehighlighter(QTextDocument* parent = nullptr, bool darkMode = true);
 
     void setDarkMode(bool enabled);
+    QVector<MiniToken> highlightLine(const QString& line) const;
+
 protected:
     void highlightBlock(const QString& text) override;
 
@@ -41,7 +43,6 @@ private:
     QRegularExpression commentEndExpression;
     QTextCharFormat preprocessorFormat;
     QTextCharFormat parameterFormat;
-    QVector<MiniToken> highlightLine(const QString& line) const;
 
     void setupRules(bool darkMode);
 };

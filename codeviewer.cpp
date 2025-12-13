@@ -129,6 +129,7 @@ CodeViewer::CodeViewer(QWidget* parent)
     // --- MINIMAP + EDITOR ---
     minimap_ = new MiniMap(this);
     minimap_->syncToEditor(editor_);
+    minimap_->setHighlighter(highlighter_);
     minimap_->setFixedWidth(120); // CHANGE THE WIDTH OF THE MINIMAP HERE
     minimap_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 

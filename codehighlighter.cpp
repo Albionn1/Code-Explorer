@@ -140,33 +140,50 @@ void codehighlighter::highlightBlock(const QString& text) {
     }
 }
 
-// QVector<MiniToken> codehighlighter::highlightLine(const QString& line) const
-// {
-//     QVector<MiniToken> tokens;
+QVector<MiniToken> codehighlighter::highlightLine(const QString& line) const
+{
+    QVector<MiniToken> tokens;
 
-//     int i = 0;
-//     while (i < line.length())
-//     {
-//         // Example: keyword
-//         auto m = keywordRegex.match(line, i);
-//         if (m.hasMatch() && m.capturedStart() == i) {
-//             tokens.append({ m.captured(), keywordColor });
-//             i += m.capturedLength();
-//             continue;
-//         }
+    int i = 0;
+    while (i < line.length())
+    {
+        bool matched = false;
 
-//         // Example: string
-//         auto s = stringRegex.match(line, i);
-//         if (s.hasMatch() && s.capturedStart() == i) {
-//             tokens.append({ s.captured(), stringColor });
-//             i += s.capturedLength();
-//             continue;
-//         }
+        for (const HighlightingRule& rule : highlightingRules)
+        {
+            auto m = rule.pattern.match(line, i);
 
-//         // Default
-//         tokens.append({ QString(line[i]), defaultColor });
-//         i++;
-//     }
+            if (m.hasMatch() && m.capturedStart() == i)
+            {
+                tokens.append({ m.captured(), rule.format.foreground().color() });
+                i += m.capturedLength();
+                matched = true;
+                break;
+            }
+        }
 
-//     return tokens;
-// }
+        if (matched)
+            continue;
+
+        auto start = commentStartExpression.match(line, i);
+        if (start.hasMatch() && start.capturedStart() == i)
+        {
+            tokens.append({ start.captured(), commentFormat.foreground().color() });
+            i += start.capturedLength();
+            continue;
+        }
+
+        auto end = commentEndExpression.match(line, i);
+        if (end.hasMatch() && end.capturedStart() == i)
+        {
+            tokens.append({ end.captured(), commentFormat.foreground().color() });
+            i += end.capturedLength();
+            continue;
+        }
+
+        tokens.append({ QString(line[i]), Qt::gray });
+        i++;
+    }
+
+    return tokens;
+}
