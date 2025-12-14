@@ -41,7 +41,7 @@ qt_add_executable(FileExplorer
     minimap.h minimap.cpp
 )
 
-# Link against Qt6 and QScintilla
+# Link against Qt6
 target_link_libraries(FileExplorer PRIVATE
     Qt6::Widgets
     Qt6::Svg
