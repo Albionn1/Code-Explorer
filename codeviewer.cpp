@@ -428,3 +428,18 @@ void CodeViewer::replaceAll()
 
     updateHighlights();
 }
+
+int CodeViewer::indentLevel(const QString& line) const
+{
+    int level = 0;
+    for (QChar c : line)
+    {
+        if (c == ' ')
+            level += 1;
+        else if (c == '\t')
+            level += 4; // tab size
+        else
+            break;
+    }
+    return level / 4; // 4 spaces per indent
+}

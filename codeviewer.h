@@ -32,6 +32,7 @@ public:
     void findPrevious();
     void replaceOne();
     void replaceAll();
+    int indentLevel(const QString& line) const;
 
 private:
     CodeEditor* editor_;

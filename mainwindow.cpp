@@ -148,9 +148,20 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar()->setStyleSheet("QStatusBar { background:#202020; color:#66ccff; }");
 
     // --- Initial roots ---
-    const QString home = QDir::homePath();
-    const QModelIndex homeIndex = fsModel_->index(home);
-    tree_->setRootIndex(homeIndex);
+    // const QString home = QDir::homePath();
+    // const QModelIndex homeIndex = fsModel_->index(home);
+    // tree_->setRootIndex(homeIndex);
+
+    QString defaultRoot = "C:/Users/Albio/Documents/C++/FUNTHINGS/FORFUN";
+    fsModel_->setNameFilters({
+        "*.cpp", "*.h", "*.hpp", "*.c",
+        "*.py", "*.js", "*.ts",
+        "*.qml", "*.json", "*.ini"
+    });
+    fsModel_->setNameFilterDisables(false);
+    fsModel_->setRootPath(defaultRoot);
+    tree_->setRootIndex(fsModel_->index(defaultRoot));
+
     // list_->setRootIndex(homeIndex);
 
     setupActions();

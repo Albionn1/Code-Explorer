@@ -12,6 +12,14 @@ public:
     void lineNumberAreaPaintEvent(QPaintEvent* event);
     void updateLineNumberArea(const QRect& rect, int dy);
     void updateLineNumberAreaWidth(int);
+    void paintEvent(QPaintEvent* event) override;
+    void drawIndentGuides(QPainter* p);
+    QColor indentGuideColor() const;
+    int currentIndentLevel() const;
+    int indentLevelOf(const QString& text) const;
+    QPair<int,int> currentIndentScope() const;
+    void drawIndentScope(QPainter* p);
+
 protected:
     void resizeEvent(QResizeEvent* event) override;
 private:
