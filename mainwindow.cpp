@@ -48,7 +48,6 @@ MainWindow::MainWindow(QWidget *parent)
     tree_->setModel(fsModel_);
     tree_->setHeaderHidden(false);
     tree_->setAnimated(true);
-    tree_->setExpandsOnDoubleClick(true);
     tree_->setUniformRowHeights(true);
     for (int col = 1; col < fsModel_->columnCount(); ++col) {
         tree_->hideColumn(col);
@@ -161,6 +160,32 @@ MainWindow::MainWindow(QWidget *parent)
     fsModel_->setNameFilterDisables(false);
     fsModel_->setRootPath(defaultRoot);
     tree_->setRootIndex(fsModel_->index(defaultRoot));
+
+    //Disbale Windows "Open with" dialogs
+    tree_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    list_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tree_->setExpandsOnDoubleClick(false);
+    list_->setExpandsOnDoubleClick(false);
+    tree_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    list_->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    connect(list_, &QTreeView::doubleClicked, this, [this](const QModelIndex& index) {
+        QString path = fsModel_->filePath(index);
+
+        if (path.endsWith(".cpp") || path.endsWith(".h") || path.endsWith(".hpp")) {
+
+            if (!codeViewerWindow_) {
+                codeViewerWindow_ = new CodeViewerWindow();
+                codeViewerWindow_->show();
+
+                connect(codeViewerWindow_, &QObject::destroyed, this, [this]() {
+                    codeViewerWindow_ = nullptr;
+                });
+            }
+
+            codeViewerWindow_->openFile(path);
+        }
+    });
 
     // list_->setRootIndex(homeIndex);
 
