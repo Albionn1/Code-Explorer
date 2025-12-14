@@ -16,9 +16,15 @@ public:
     void drawIndentGuides(QPainter* p);
     QColor indentGuideColor() const;
     int currentIndentLevel() const;
-    int indentLevelOf(const QString& text) const;
+    int indentLevelOf(const QString& text, int* firstNonSpaceX) const;
     QPair<int,int> currentIndentScope() const;
     void drawIndentScope(QPainter* p);
+    QPair<int,int> indentScope() const;
+    QPair<int,int> braceScope(QTextCursor cursor) const;
+    QPair<int,int> unifiedScope() const;
+    void drawScope(QPainter* p);
+    bool isIfElseLine(const QString& text) const;
+    QPair<int,int> ifElseChainScope() const;
 
 protected:
     void resizeEvent(QResizeEvent* event) override;

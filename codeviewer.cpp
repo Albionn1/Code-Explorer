@@ -162,7 +162,6 @@ CodeViewer::CodeViewer(QWidget* parent)
     //                 // editor_->verticalScrollBar()->pageStep()
     //                 );
     //         });
-
     setDarkMode(false);
 }
 

@@ -163,14 +163,23 @@ int CodeEditor::currentIndentLevel() const
     return spaces / 4;
 }
 
-int CodeEditor::indentLevelOf(const QString& text) const
+int CodeEditor::indentLevelOf(const QString& text, int* pixelX) const
 {
     int spaces = 0;
-    for (QChar c : text) {
+    int i = 0;
+
+    for (; i < text.size(); ++i) {
+        QChar c = text[i];
         if (c == ' ') spaces++;
         else if (c == '\t') spaces += 4;
         else break;
     }
+
+    if (pixelX) {
+        int cw = fontMetrics().horizontalAdvance(' ');
+        *pixelX = spaces * cw;
+    }
+
     return spaces / 4;
 }
 
@@ -179,18 +188,23 @@ QPair<int,int> CodeEditor::currentIndentScope() const
     QTextBlock block = textCursor().block();
     int start = block.blockNumber();
 
-    int baseIndent = indentLevelOf(block.text());
-    if (baseIndent == 0)
-        return {start, start};
+    int dummyX = 0;
+    int baseIndent = indentLevelOf(block.text(), &dummyX);
 
-    // Walk downward until indentation drops
+    // If you want to skip scope for top-level lines, keep this early return:
+    // if (baseIndent == 0)
+    //     return {start, start};
+
     QTextBlock b = block.next();
     int end = start;
 
     while (b.isValid()) {
-        int level = indentLevelOf(b.text());
-        if (level < baseIndent)
+        int ignoreX = 0;
+        int level = indentLevelOf(b.text(), &ignoreX);
+
+        if (level < baseIndent && !b.text().trimmed().isEmpty())
             break;
+
         end = b.blockNumber();
         b = b.next();
     }
@@ -210,14 +224,9 @@ void CodeEditor::drawIndentScope(QPainter* p)
     QColor base = palette().color(QPalette::Base);
     int brightness = qGray(base.rgb());
 
-    QColor scopeColor;
-    if (brightness > 128) {
-        // Light mode
-        scopeColor = QColor(0, 0, 0, 12);
-    } else {
-        // Dark mode
-        scopeColor = QColor(255, 255, 255, 18);
-    }
+    QColor scopeColor = (brightness > 128)
+                            ? QColor(0, 0, 0, 12)
+                            : QColor(255, 255, 255, 18);
 
     p->save();
     p->setBrush(scopeColor);
@@ -225,13 +234,22 @@ void CodeEditor::drawIndentScope(QPainter* p)
 
     QTextBlock block = document()->findBlockByNumber(start);
 
+    int firstIndentX = 0;
+    {
+        int tmp = 0;
+        indentLevelOf(block.text(), &tmp);
+        firstIndentX = tmp;
+    }
+
+    int paddingLeft  = firstIndentX - fontMetrics().horizontalAdvance(' ') * 0.5;
+    int paddingRight = firstIndentX + fontMetrics().horizontalAdvance(' ') * 8; // extend a bit into text
+
     while (block.isValid() && block.blockNumber() <= end)
     {
-        QRectF r = blockBoundingGeometry(block)
-        .translated(contentOffset());
+        QRectF r = blockBoundingGeometry(block).translated(contentOffset());
 
-        r.setLeft(0);                 // full width
-        r.setRight(viewport()->width());
+        r.setLeft(qMax(0, paddingLeft));
+        r.setRight(qMin(viewport()->width(), paddingRight));
 
         p->drawRect(r);
 
@@ -241,12 +259,234 @@ void CodeEditor::drawIndentScope(QPainter* p)
     p->restore();
 }
 
+QPair<int,int> CodeEditor::braceScope(QTextCursor cursor) const
+{
+    QTextDocument* doc = document();
+
+    QTextCursor scan = cursor;
+    int openPos = -1;
+
+    {
+        QTextCursor c = scan;
+        while (!c.atStart()) {
+            c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor);
+            QString ch = c.selectedText();
+            if (ch.isEmpty())
+                break;
+
+            if (ch[0] == '{') {
+                openPos = c.position() - 1;
+                break;
+            }
+        }
+    }
+
+    if (openPos < 0) {
+        QTextCursor c = scan;
+        while (!c.atEnd()) {
+            c.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+            QString ch = c.selectedText();
+            if (ch.isEmpty())
+                break;
+
+            if (ch[0] == '{') {
+                openPos = c.position() - 1;
+                break;
+            }
+        }
+    }
+
+    if (openPos < 0)
+        return {-1, -1};
+
+    QTextCursor braceCursor(doc);
+    braceCursor.setPosition(openPos);
+
+    int depth = 0;
+    int closePos = -1;
+
+    while (!braceCursor.atEnd()) {
+        braceCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+        QString ch = braceCursor.selectedText();
+        if (ch.isEmpty())
+            break;
+
+        if (ch[0] == '{') {
+            depth++;
+        } else if (ch[0] == '}') {
+            depth--;
+            if (depth == 0) {
+                closePos = braceCursor.position() - 1;
+                break;
+            }
+        }
+    }
+
+    if (closePos < 0)
+        return {-1, -1};
+
+    QTextCursor openBlockCursor(doc);
+    openBlockCursor.setPosition(openPos);
+
+    QTextCursor closeBlockCursor(doc);
+    closeBlockCursor.setPosition(closePos);
+
+    int startBlock = openBlockCursor.block().blockNumber();
+    int endBlock   = closeBlockCursor.block().blockNumber();
+
+    int cursorBlock = cursor.block().blockNumber();
+    if (cursorBlock < startBlock || cursorBlock > endBlock)
+        return {-1, -1};
+
+    return { startBlock, endBlock };
+}
+
+
+QPair<int,int> CodeEditor::indentScope() const
+{
+    QTextBlock block = textCursor().block();
+    int start = block.blockNumber();
+
+    int dummy = 0;
+    int baseIndent = indentLevelOf(block.text(), &dummy);
+
+    QTextBlock b = block.next();
+    int end = start;
+
+    while (b.isValid()) {
+        int px = 0;
+        int level = indentLevelOf(b.text(), &px);
+
+        if (level < baseIndent && !b.text().trimmed().isEmpty())
+            break;
+
+        end = b.blockNumber();
+        b = b.next();
+    }
+
+    return {start, end};
+}
+
+QPair<int,int> CodeEditor::unifiedScope() const
+{
+    QTextCursor c = textCursor();
+
+    auto chain = ifElseChainScope();
+    if (chain.first != -1 && chain.second != -1 && chain.first != chain.second)
+        return chain;
+
+    auto brace = braceScope(c);
+    if (brace.first != -1 && brace.second != -1)
+        return brace;
+
+    return {-1, -1};
+}
+
+
+void CodeEditor::drawScope(QPainter* p)
+{
+    auto scope = unifiedScope();
+    int start = scope.first;
+    int end   = scope.second;
+
+    if (start < 0 || end < 0 || start == end)
+        return;
+
+    QColor base = palette().color(QPalette::Base);
+    int brightness = qGray(base.rgb());
+
+    QColor scopeColor = (brightness > 128)
+                            ? QColor(0, 0, 0, 12)
+                            : QColor(255, 255, 255, 18);
+
+    p->save();
+    p->setBrush(scopeColor);
+    p->setPen(Qt::NoPen);
+
+    QTextBlock block = document()->findBlockByNumber(start);
+
+    while (block.isValid() && block.blockNumber() <= end)
+    {
+        QRectF r = blockBoundingGeometry(block).translated(contentOffset());
+        r.setLeft(0);
+        r.setRight(viewport()->width());
+        p->drawRect(r);
+
+        block = block.next();
+    }
+
+    p->restore();
+}
+
+bool CodeEditor::isIfElseLine(const QString& text) const
+{
+    QString t = text.trimmed();
+    return t.startsWith("if ") ||
+           t.startsWith("if(") ||
+           t.startsWith("else if") ||
+           t.startsWith("else");
+}
+
+QPair<int,int> CodeEditor::ifElseChainScope() const
+{
+    QTextBlock block = textCursor().block();
+    QString current = block.text().trimmed();
+    int line = block.blockNumber();
+
+    if (!isIfElseLine(current))
+        return {-1, -1};
+
+    QTextBlock up = block;
+    int start = line;
+
+    while (up.isValid()) {
+        QString t = up.text().trimmed();
+        if (!isIfElseLine(t))
+            break;
+        start = up.blockNumber();
+        up = up.previous();
+    }
+
+    QTextBlock down = block;
+    int end = line;
+
+    while (down.isValid()) {
+        QString t = down.text().trimmed();
+        if (!isIfElseLine(t))
+            break;
+        end = down.blockNumber();
+        down = down.next();
+    }
+
+    int finalStart = start;
+    int finalEnd   = end;
+
+    for (int i = start; i <= end; ++i) {
+        QTextBlock b = document()->findBlockByNumber(i);
+        QString t = b.text().trimmed();
+
+        if (!isIfElseLine(t))
+            continue;
+
+        QTextCursor c(b);
+        auto br = braceScope(c);
+
+        if (br.first != -1) {
+            finalStart = qMin(finalStart, br.first);
+            finalEnd   = qMax(finalEnd, br.second);
+        }
+    }
+
+    return {finalStart, finalEnd};
+}
+
+
 void CodeEditor::paintEvent(QPaintEvent* event)
 {
-
     QPainter p(viewport());
-    drawIndentScope(&p);
-    drawIndentGuides(&p);
 
+    // drawScope(&p); //it doesn't work as intended
+    drawIndentGuides(&p);
     QPlainTextEdit::paintEvent(event);
 }
+

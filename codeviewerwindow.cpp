@@ -133,7 +133,9 @@ CodeViewerWindow::CodeViewerWindow(QWidget* parent)
 
     setCentralWidget(container);
 
-    resize(900, 700);
+    setMinimumSize(1200, 900);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
 }
 
 void CodeViewerWindow::openFile(const QString& path)

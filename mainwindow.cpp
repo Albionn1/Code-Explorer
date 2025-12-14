@@ -260,7 +260,6 @@ void MainWindow::setupActions() {
     bool darkMode = provider ? provider->darkMode() : false;
     updateDarkModeToggleUI(darkMode, iconSize_);
 
-    // Signals (same as before)...
     connect(fileGroup, &RibbonGroup::actionTriggered, this, [this](const QString& name){
         if (name == "Open")   openSelected();
         else if (name == "Rename") renameSelected();
