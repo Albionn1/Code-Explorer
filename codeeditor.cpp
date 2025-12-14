@@ -90,7 +90,7 @@ void CodeEditor::drawIndentGuides(QPainter* p)
 
     int charWidth = fontMetrics().horizontalAdvance(' ');
     int indentWidth = 4 * charWidth;
-    int padding = charWidth * 0.6; // tweak to taste
+    int padding = charWidth * 0.6;
 
     QTextBlock block = firstVisibleBlock();
     int top = blockBoundingGeometry(block).translated(contentOffset()).top();
@@ -190,10 +190,6 @@ QPair<int,int> CodeEditor::currentIndentScope() const
 
     int dummyX = 0;
     int baseIndent = indentLevelOf(block.text(), &dummyX);
-
-    // If you want to skip scope for top-level lines, keep this early return:
-    // if (baseIndent == 0)
-    //     return {start, start};
 
     QTextBlock b = block.next();
     int end = start;
