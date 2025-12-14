@@ -62,6 +62,10 @@ private:
     QVector<CodeViewerWindow*> openCodeViewerWindows_;
     CodeViewerWindow* codeViewerWindow_ = nullptr;
 
+    QDockWidget* editorDock_ = nullptr;
+    QTabWidget* editorTabs_ = nullptr;
+
+
     bool previewVisible_ = false;
 
     void navigateTo(const QString& dir, bool addToHistory = true);

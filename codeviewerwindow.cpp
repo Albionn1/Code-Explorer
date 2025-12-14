@@ -147,7 +147,7 @@ void CodeViewerWindow::openFile(const QString& path)
     int tabIndex = tabWidget_->addTab(viewer, QFileInfo(path).fileName());
     tabWidget_->setCurrentIndex(tabIndex);
 
-    setWindowTitle("CodeViewer - " + QFileInfo(path).absolutePath());
+    setWindowTitle("CodeEditor - " + QFileInfo(path).absolutePath());
 }
 
 void CodeViewerWindow::setDarkMode(bool enabled)

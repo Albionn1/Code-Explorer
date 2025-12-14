@@ -30,6 +30,7 @@
 #include <QStyleFactory>
 #include <qapplication.h>
 #include <qheaderview.h>
+#include <QDockWidget>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -124,7 +125,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Main split: tree + rightSplit
     mainSplit = new QSplitter(Qt::Horizontal, this);
     mainSplit->addWidget(tree_);
-    mainSplit->addWidget(list_);
+    // mainSplit->addWidget(list_);
     mainSplit->addWidget(preview_);
     mainSplit->setStretchFactor(0, 0); // tree
     mainSplit->setStretchFactor(1, 1); // list
@@ -159,33 +160,101 @@ MainWindow::MainWindow(QWidget *parent)
     });
     fsModel_->setNameFilterDisables(false);
     fsModel_->setRootPath(defaultRoot);
+
     tree_->setRootIndex(fsModel_->index(defaultRoot));
 
-    //Disbale Windows "Open with" dialogs
-    tree_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    //Disbale Windows "Open with" and other default dialogs
+
+
     list_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    tree_->setExpandsOnDoubleClick(false);
+
     list_->setExpandsOnDoubleClick(false);
-    tree_->setSelectionBehavior(QAbstractItemView::SelectRows);
+
     list_->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    tree_->setHeaderHidden(true);
+    tree_->setAnimated(true);
+    tree_->setUniformRowHeights(true);
+    tree_->setSortingEnabled(true);
+    tree_->setIndentation(20);
+    tree_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tree_->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    for (int col = 1; col < fsModel_->columnCount(); ++col)
+        tree_->hideColumn(col);
+
+    tree_->setExpandsOnDoubleClick(true);
+    connect(tree_, &QTreeView::doubleClicked, this, [this](const QModelIndex& idx) {
+        QString path = fsModel_->filePath(idx);
+
+        if (fsModel_->isDir(idx)) {
+            if (tree_->isExpanded(idx))
+                tree_->collapse(idx);
+            else
+                tree_->expand(idx);
+            return;
+        }
+
+        if (path.endsWith(".cpp") || path.endsWith(".h") || path.endsWith(".hpp")) {
+
+            if (!editorDock_->isVisible())
+                editorDock_->show();
+
+            CodeViewer* viewer = new CodeViewer(this);
+            viewer->loadFile(path);
+
+            int tabIndex = editorTabs_->addTab(viewer, QFileInfo(path).fileName());
+            editorTabs_->setCurrentIndex(tabIndex);
+        }
+    });
+
+
+    editorDock_ = new QDockWidget("Editor", this);
+    editorDock_->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    editorTabs_ = new QTabWidget(editorDock_);
+    editorTabs_->setTabsClosable(true);
+    editorTabs_->setMovable(true);
+
+    editorDock_->setWidget(editorTabs_);
+    addDockWidget(Qt::RightDockWidgetArea, editorDock_);
+
+    editorDock_->setMinimumWidth(400);
+    editorDock_->setMaximumWidth(2000);
+    editorDock_->resize(800, editorDock_->height());
+
+    editorDock_->hide(); // start hidden
 
     connect(list_, &QTreeView::doubleClicked, this, [this](const QModelIndex& index) {
         QString path = fsModel_->filePath(index);
 
         if (path.endsWith(".cpp") || path.endsWith(".h") || path.endsWith(".hpp")) {
 
-            if (!codeViewerWindow_) {
-                codeViewerWindow_ = new CodeViewerWindow();
-                codeViewerWindow_->show();
+            if (!editorDock_->isVisible()) {
+                editorDock_->show();
 
-                connect(codeViewerWindow_, &QObject::destroyed, this, [this]() {
-                    codeViewerWindow_ = nullptr;
-                });
+                QList<int> sizes;
+                sizes << 250 << 950;
+                mainSplit->setSizes(sizes);
             }
 
-            codeViewerWindow_->openFile(path);
+            CodeViewer* viewer = new CodeViewer(this);
+            viewer->loadFile(path);
+
+            int tabIndex = editorTabs_->addTab(viewer, QFileInfo(path).fileName());
+            editorTabs_->setCurrentIndex(tabIndex);
         }
     });
+    connect(editorTabs_, &QTabWidget::tabCloseRequested, this, [this](int index) {
+        QWidget* w = editorTabs_->widget(index);
+        editorTabs_->removeTab(index);
+        w->deleteLater();
+
+        if (editorTabs_->count() == 0)
+            editorDock_->hide();
+    });
+
+
 
     // list_->setRootIndex(homeIndex);
 
@@ -379,11 +448,39 @@ void MainWindow::setupActions() {
 }
 
 void MainWindow::openSelected() {
-    const auto idx = list_->currentIndex().isValid() ? list_->currentIndex() : tree_->currentIndex();
-    if(!idx.isValid()) return;
-    const auto path = fsModel_->filePath(idx);
-    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    QModelIndex idx = list_->currentIndex().isValid()
+    ? list_->currentIndex()
+    : tree_->currentIndex();
+
+    if (!idx.isValid())
+        return;
+
+    QString path = fsModel_->filePath(idx);
+
+    // Only open code files
+    if (!path.endsWith(".cpp") &&
+        !path.endsWith(".h") &&
+        !path.endsWith(".hpp"))
+        return;
+
+    // Show the dock if hidden
+    if (!editorDock_->isVisible())
+        editorDock_->show();
+
+    // Create a new CodeViewer for this file
+    CodeViewer* viewer = new CodeViewer(this);
+    viewer->loadFile(path);
+
+    int tabIndex = editorTabs_->addTab(viewer, QFileInfo(path).fileName());
+    editorTabs_->setCurrentIndex(tabIndex);
 }
+
+// void MainWindow::openSelected() {
+//     // const auto idx = list_->currentIndex().isValid() ? list_->currentIndex() : tree_->currentIndex();
+//     // if(!idx.isValid()) return;
+//     // const auto path = fsModel_->filePath(idx);
+//     // QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+// }
 
 void MainWindow::revealInExplorer() {
     const auto idx = list_->currentIndex().isValid() ? list_->currentIndex() : tree_->currentIndex();
