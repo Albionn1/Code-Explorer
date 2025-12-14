@@ -14,8 +14,6 @@ struct MiniToken{
 class codehighlighter : public QSyntaxHighlighter{
     Q_OBJECT
 
-
-
 public:
     explicit codehighlighter(QTextDocument* parent = nullptr, bool darkMode = true);
 

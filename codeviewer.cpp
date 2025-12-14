@@ -142,26 +142,26 @@ CodeViewer::CodeViewer(QWidget* parent)
 
     // INITIAL VISIBLE REGION
     minimap_->updateVisibleRegion(
-        editor_->verticalScrollBar()->value(),
-        editor_->verticalScrollBar()->pageStep()
+        editor_->verticalScrollBar()->value()
+        // editor_->verticalScrollBar()->pageStep()
         );
 
     // SCROLL SYNC
-    connect(editor_->verticalScrollBar(), &QScrollBar::rangeChanged,
-            this, [this]() {
-                minimap_->updateVisibleRegion(
-                    editor_->verticalScrollBar()->value(),
-                    editor_->verticalScrollBar()->pageStep()
-                    );
-            });
+    // connect(editor_->verticalScrollBar(), &QScrollBar::rangeChanged,
+    //         this, [this]() {
+    //             minimap_->updateVisibleRegion(
+    //                 editor_->verticalScrollBar()->value()
+    //                 // editor_->verticalScrollBar()->pageStep()
+    //                 );
+    //         });
 
-    connect(editor_->verticalScrollBar(), &QScrollBar::valueChanged,
-            this, [this](int value) {
-                minimap_->updateVisibleRegion(
-                    value,
-                    editor_->verticalScrollBar()->pageStep()
-                    );
-            });
+    // connect(editor_->verticalScrollBar(), &QScrollBar::valueChanged,
+    //         this, [this](int value) {
+    //             minimap_->updateVisibleRegion(
+    //                 value
+    //                 // editor_->verticalScrollBar()->pageStep()
+    //                 );
+    //         });
 
     setDarkMode(false);
 }
